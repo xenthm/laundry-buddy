@@ -1,45 +1,51 @@
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // Get user profile
-exports.getUserProfile = async (req, res) => {
+exports.getUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
   }
 };
 
 // Update user profile
-exports.updateUserProfile = async (req, res) => {
+// TODO Checks for same username, and email, plus corresponding responses
+exports.updateUserProfile = async (req, res, next) => {
   const { username, email } = req.body;
 
   try {
-    let user = await User.findById(req.user.id);
+    req.user.username = username || req.user.username;
+    req.user.email = email || req.user.email;
 
-    if (user) {
-      user.username = username || user.username;
-      user.email = email || user.email;
-
-      await user.save();
-      return res.json(user);
-    }
-
-    res.status(404).json({ msg: 'User not found' });
+    await req.user.save();
+    return res.json(req.user);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
+  }
+};
+
+// Change password
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+    req.user.password = newPassword;
+    await req.user.save();
+    res.json({ msg: 'Password updated successfully' });
+  } catch (err) {
+    next(err);
   }
 };
 
 // Delete user account
-exports.deleteUserAccount = async (req, res) => {
+exports.deleteUserAccount = async (req, res, next) => {
   try {
     await User.findByIdAndRemove(req.user.id);
     res.json({ msg: 'User deleted' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
   }
 };

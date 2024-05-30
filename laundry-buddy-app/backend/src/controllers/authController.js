@@ -4,9 +4,15 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// TODO Abstract away the token generator
+
 // Register a new user
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ msg: 'Please provide username, email, and password' });
+  }
 
   try {
     let user = await User.findOne({ email });
@@ -14,12 +20,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
-    user = new User({
-      username,
-      email,
-      password,
-    });
-
+    user = new User({ username, email, password });
     await user.save();
 
     const payload = {
@@ -38,29 +39,16 @@ exports.register = async (req, res) => {
       }
     );
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
   }
 };
 
 // Authenticate user and get token
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
+exports.login = async (req, res, next) => {
   try {
-    let user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
-    }
-
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
-    }
-
     const payload = {
       user: {
-        id: user.id,
+        id: req.user.id,
       },
     };
 
@@ -74,7 +62,6 @@ exports.login = async (req, res) => {
       }
     );
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
   }
 };
