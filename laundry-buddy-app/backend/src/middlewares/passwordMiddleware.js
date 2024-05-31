@@ -13,7 +13,7 @@ const verifyPassword = async (req, res, next) => {
       req.user = await User.findOne({ email });
       
       if (!req.user) {
-        return res.status(400).json({ msg: 'Wrong Email' });
+        return res.status(400).json({ msg: 'User does not exist' });
       }
     } else if (req.originalUrl === '/api/user/change-password') {
       if (!req.user) {

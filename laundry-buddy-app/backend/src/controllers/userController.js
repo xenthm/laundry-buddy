@@ -5,19 +5,25 @@ const User = require('../models/User');
 // Get user profile
 exports.getUserProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    res.json(req.user);
   } catch (err) {
     next(err);
   }
 };
 
 // Update user profile
-// TODO Checks for same username, and email, plus corresponding responses
 exports.updateUserProfile = async (req, res, next) => {
   const { username, email } = req.body;
 
   try {
+    if (username === req.user.username) {
+      return res.status(400).json({ msg: 'New username cannot be the same as current username' });
+    }
+
+    if (email === req.user.email) {
+      return res.status(400).json({ msg: 'New email cannot be the same as current email' });
+    }
+
     req.user.username = username || req.user.username;
     req.user.email = email || req.user.email;
 
@@ -43,7 +49,7 @@ exports.changePassword = async (req, res, next) => {
 // Delete user account
 exports.deleteUserAccount = async (req, res, next) => {
   try {
-    await User.findByIdAndRemove(req.user.id);
+    await User.findByIdAndDelete(req.user.id);
     res.json({ msg: 'User deleted' });
   } catch (err) {
     next(err);
