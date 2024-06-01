@@ -1,4 +1,5 @@
 const express = require('express');
+const verifyPassword = require('../middlewares/passwordMiddleware');
 const { register, login } = require('../controllers/authController');
 
 const router = express.Router();
@@ -7,6 +8,6 @@ const router = express.Router();
 router.post('/register', register);
 
 // Login route
-router.post('/login', login);
+router.post('/login', verifyPassword, login);
 
 module.exports = router;

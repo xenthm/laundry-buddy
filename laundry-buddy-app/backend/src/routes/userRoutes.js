@@ -1,16 +1,23 @@
 const express = require('express');
-const { getUserProfile, updateUserProfile, deleteUserAccount } = require('../controllers/userController');
 const auth = require('../middlewares/authMiddleware');
+const { getUserProfile, updateUserProfile, changePassword, deleteUserAccount, forgotPassword, resetPassword } = require('../controllers/userController');
+const verifyPassword = require('../middlewares/passwordMiddleware');
 
 const router = express.Router();
 
+// Middleware to check authentication token
+router.use(auth);
+
 // Route to get user profile
-router.get('/profile', auth, getUserProfile);
+router.get('/profile', getUserProfile);
 
 // Route to update user profile
-router.put('/profile', auth, updateUserProfile);
+router.put('/profile', updateUserProfile);
+
+// Route to change password
+router.put('/change-password', verifyPassword, changePassword);
 
 // Route to delete user account
-router.delete('/profile', auth, deleteUserAccount);
+router.delete('/profile', deleteUserAccount);
 
 module.exports = router;

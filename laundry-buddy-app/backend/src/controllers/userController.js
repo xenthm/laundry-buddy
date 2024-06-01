@@ -1,45 +1,55 @@
 const User = require('../models/User');
 
 // Get user profile
-exports.getUserProfile = async (req, res) => {
+exports.getUserProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    res.json(req.user);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
   }
 };
 
 // Update user profile
-exports.updateUserProfile = async (req, res) => {
+exports.updateUserProfile = async (req, res, next) => {
   const { username, email } = req.body;
 
   try {
-    let user = await User.findById(req.user.id);
-
-    if (user) {
-      user.username = username || user.username;
-      user.email = email || user.email;
-
-      await user.save();
-      return res.json(user);
+    if (username === req.user.username) {
+      return res.status(400).json({ msg: 'New username cannot be the same as current username' });
     }
 
-    res.status(404).json({ msg: 'User not found' });
+    if (email === req.user.email) {
+      return res.status(400).json({ msg: 'New email cannot be the same as current email' });
+    }
+
+    req.user.username = username || req.user.username;
+    req.user.email = email || req.user.email;
+
+    await req.user.save();
+    return res.json(req.user);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
+  }
+};
+
+// Change password
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+    req.user.password = newPassword;
+    await req.user.save();
+    res.json({ msg: 'Password updated successfully' });
+  } catch (err) {
+    next(err);
   }
 };
 
 // Delete user account
-exports.deleteUserAccount = async (req, res) => {
+exports.deleteUserAccount = async (req, res, next) => {
   try {
-    await User.findByIdAndRemove(req.user.id);
+    await User.findByIdAndDelete(req.user.id);
     res.json({ msg: 'User deleted' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    next(err);
   }
 };

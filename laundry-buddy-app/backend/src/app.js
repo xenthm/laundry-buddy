@@ -2,13 +2,10 @@ const express = require('express');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-const dotenv = require('dotenv');
-
-dotenv.config();
+const resetRoutes = require('./routes/resetRoutes');
 
 const app = express();
 
-// Connect to database
 connectDB();
 
 // Middleware to parse JSON bodies
@@ -17,5 +14,12 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/', resetRoutes);
+
+// Global error handling
+app.use((err, req, res, next) => {
+    console.error(err.message);
+    res.status(500).send('Server error');
+});
 
 module.exports = app;
