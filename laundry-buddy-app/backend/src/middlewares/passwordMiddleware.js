@@ -1,15 +1,14 @@
 const User = require('../models/User');
 
 const verifyPassword = async (req, res, next) => {
-  const { password } = req.body;
-  
-  if (!password) {
-    return res.status(400).json({ msg: 'Please provide password' });
-  }
-
   try {
     if (req.originalUrl === '/api/auth/login') {
       const { username } = req.body;
+
+      if (!username) {
+        return res.status(400).json({ msg: 'Please provide username' });
+      }
+
       req.user = await User.findOne({ username });
       
       if (!req.user) {
@@ -21,18 +20,22 @@ const verifyPassword = async (req, res, next) => {
       }
     }
 
-    const isMatch = await req.user.matchPassword(password);
-    if (!isMatch) {
-      let msg = 'is incorrect';
-      if (req.originalUrl === '/api/auth/login') {
-        msg = 'Password ' + msg;
-      } else if (req.originalUrl === '/api/user/change-password') {
-        msg = 'Current password ' + msg;
-      }
-      return res.status(400).json({ msg: msg });
-    }
+    const { password } = req.body;
     
-    if (req.originalUrl === '/api/user/change-password') {
+    if (!password) {
+      return res.status(400).json({ msg: 'Please provide password' });
+    }
+
+    const isMatch = await req.user.matchPassword(password);
+    if (req.originalUrl === '/api/auth/login') {
+      if (!isMatch) {
+        return res.status(400).json({ msg: 'Password is incorrect' });
+      }
+    } else if (req.originalUrl === '/api/user/change-password') {
+      if (!isMatch) {
+        return res.status(400).json({ msg: 'Current password is incorrect' });
+      }
+
       const { newPassword } = req.body;
       
       if (!newPassword) {
