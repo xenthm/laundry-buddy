@@ -9,8 +9,8 @@ const verifyPassword = async (req, res, next) => {
 
   try {
     if (req.originalUrl === '/api/auth/login') {
-      const { email } = req.body;
-      req.user = await User.findOne({ email });
+      const { username } = req.body;
+      req.user = await User.findOne({ username });
       
       if (!req.user) {
         return res.status(400).json({ msg: 'User does not exist' });
