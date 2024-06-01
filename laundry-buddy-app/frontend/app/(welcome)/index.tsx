@@ -2,6 +2,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationHelpersContext } from "@react-navigation/native";
 import { Link, router } from "expo-router";
 import React, { useState } from "react";
+// import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
+
 import {
   Alert,
   Button,
@@ -30,6 +33,36 @@ export default function Login() {
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
+
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_WSL_IP}:5000/api/auth/login`, {
+        username, 
+        password,
+      });
+
+      const { token } = response.data;
+      // await SecureStore.setItemAsync('token', token);
+      Alert.alert('Login Successful', `Token saved successfully!\n\n${token}`);
+      // await SecureStore.deleteItemAsync('token');
+      // console.log(SecureStore.getItemAsync('token'));
+    } catch (error) {
+      // can use this to see what the response was from the API
+      if (error.response && error.response.status === 400) {
+        Alert.alert(
+          'Login Failed', 
+          `${error.response.data.msg}`,
+        );
+      } else {
+        Alert.alert(
+          'Login Failed', 
+          `Please contact the developers with the following information\n\n${error}`,
+        );
+        console.error(error);
+      }
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -78,7 +111,7 @@ export default function Login() {
         <View style={styles.buttonView}>
           <Pressable
             style={styles.button}
-            onPress={() => Alert.alert("Login Successfully!")}
+            onPress={handleLogin}
           >
             <Text style={styles.buttonText}>Login</Text>
           </Pressable>
