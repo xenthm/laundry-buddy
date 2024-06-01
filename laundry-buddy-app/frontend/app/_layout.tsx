@@ -1,9 +1,10 @@
-import { Stack } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" />
-    </Stack>
+    <Drawer>
+      <Drawer.Screen name="(welcome)" options={{ headerShown: false }} />
+      <Drawer.Screen name="(function)" options={{ headerShown: false }} />
+    </Drawer>
   );
 }
