@@ -38,7 +38,7 @@ exports.register = async (req, res, next) => {
     
     if (user) {
       if (email === user.email) {
-        return res.status(400).json({ msg: 'User already exists' });
+        return res.status(400).json({ msg: 'This email address is already been registered' });
       } else if (username === user.username) {
         return res.status(400).json({ msg: 'Username is already in use, please provide a different username' });
       }

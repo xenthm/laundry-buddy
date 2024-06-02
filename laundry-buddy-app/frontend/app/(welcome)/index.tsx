@@ -2,9 +2,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationHelpersContext } from "@react-navigation/native";
 import { Link, router } from "expo-router";
 import React, { useState } from "react";
-// import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
-
 import {
   Alert,
   Button,
@@ -42,10 +41,10 @@ export default function Login() {
       });
 
       const { token } = response.data;
-      // await SecureStore.setItemAsync('token', token);
+
+      await SecureStore.setItemAsync('token', token);
+      // for now, show the token when login successful
       Alert.alert('Login Successful', `Token saved successfully!\n\n${token}`);
-      // await SecureStore.deleteItemAsync('token');
-      // console.log(SecureStore.getItemAsync('token'));
     } catch (error) {
       // can use this to see what the response was from the API
       if (error.response && error.response.status === 400) {
@@ -85,9 +84,11 @@ export default function Login() {
             <TextInput
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
+              keyboardType={showPassword ? 'visible-password' : ''}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
+              autoComplete='off'
               autoCorrect={false}
               autoCapitalize="none"
             />
@@ -100,13 +101,13 @@ export default function Login() {
             />
           </View>
         </View>
-        <View style={styles.rememberView}>
+        {/* <View style={styles.rememberView}>
           <View>
             <Pressable onPress={() => router.navigate("forget")}>
               <Text style={styles.forgetText}>Forgot Password?</Text>
             </Pressable>
           </View>
-        </View>
+        </View> */}
 
         <View style={styles.buttonView}>
           <Pressable

@@ -1,6 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
 import React, { useState } from "react";
+import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
 import {
   Alert,
   Button,
@@ -30,6 +32,36 @@ export default function SignUp() {
     setShowPassword(!showPassword);
   };
 
+  const handleSignUp = async () => {
+    try {
+      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_WSL_IP}:5000/api/auth/register`, {
+        username, 
+        email, 
+        password,
+      });
+
+      const { token } = response.data;
+
+      await SecureStore.setItemAsync('token', token);
+      // for now, show the token when sign up successful
+      Alert.alert('Sign Up Successful', `Token saved successfully!\n\n${token}`);
+    } catch (error) {
+      // can use this to see what the response was from the API
+      if (error.response && error.response.status === 400) {
+        Alert.alert(
+          'Sign Up Failed', 
+          `${error.response.data.msg}`,
+        );
+      } else {
+        Alert.alert(
+          'Sign Up Failed', 
+          `Please contact the developers with the following information\n\n${error}`,
+        );
+        console.error(error);
+      }
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -43,6 +75,7 @@ export default function SignUp() {
         <View style={styles.inputView}>
           <TextInput
             style={styles.input}
+            keyboardType='email-address'
             placeholder="E-mail"
             value={email}
             onChangeText={setEmail}
@@ -61,10 +94,12 @@ export default function SignUp() {
             <TextInput
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
+              keyboardType={showPassword ? 'visible-password' : ''}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
               autoCorrect={false}
+              autoComplete='off'
               autoCapitalize="none"
             />
             <MaterialCommunityIcons
@@ -79,7 +114,8 @@ export default function SignUp() {
         <View style={styles.buttonView}>
           <Pressable
             style={styles.button}
-            onPress={() => Alert.alert("Welcome to Laundry Buddy!")}
+            // onPress={() => Alert.alert("Welcome to Laundry Buddy!")}
+            onPress={handleSignUp}
           >
             <Text style={styles.buttonText}>Sign Up</Text>
           </Pressable>
