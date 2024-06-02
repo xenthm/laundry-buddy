@@ -22,4 +22,9 @@ A dashboard that shows the number of available machines (washers and dryers) in 
 A notification that alerts the user when their selected machine is done with their cycle. This alert will pop up on the user’s phone when the timer hits zero.
 ## **Laundry removed notification (core)**
 A notification that alerts the user when laundry has been removed (either by themselves or other users). This will be triggered by the opening of the machine’s door. (Assumption: the wash/dry cycle cannot be paused)
+## **Summary statistics screen (extension)**
+A dashboard that displays the traffic of the residence’s laundry use, displayed by the day of the week and time.
+## **App theme customisation (bonus)**
+Ability for users to change app main and accent colours from settings page.
+
 
