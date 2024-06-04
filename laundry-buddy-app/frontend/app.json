@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "laundry-buddy",
-    "slug": "laundry-buddy",
+    "slug": "laundry-buddy-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon_laundrybuddy.png",
@@ -39,8 +39,15 @@
         "origin": false
       },
       "eas": {
-        "projectId": "b079f59b-a36d-4af2-b4d5-9962e7b88432"
+        "projectId": "6ec8f9e3-b9f5-452a-89f7-ca2f7d2a9292"
       }
+    },
+    "owner": "laundry-buddy",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6ec8f9e3-b9f5-452a-89f7-ca2f7d2a9292"
     }
   }
 }

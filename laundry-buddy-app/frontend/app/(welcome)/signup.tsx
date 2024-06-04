@@ -34,10 +34,12 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     try {
-      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_WSL_IP}:5000/api/auth/register`, {
+      const response = await axios.post(`https://laundry-buddy.onrender.com/api/auth/register`, {
         username, 
         email, 
         password,
+      }, {
+        // timeout: 5000 // Timeout after 5 seconds
       });
 
       const { token } = response.data;
