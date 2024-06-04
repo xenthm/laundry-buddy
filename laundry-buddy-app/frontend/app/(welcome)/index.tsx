@@ -35,13 +35,11 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post(`https://laundry-buddy.onrender.com/api/auth/login`, {
+      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/login`, {
         username, 
         password,
-      }, {
-        // timeout: 1000 // Timeout after 5 seconds
       });
-
+      
       const { token } = response.data;
 
       await SecureStore.setItemAsync("token", token);
@@ -56,8 +54,7 @@ export default function Login() {
           "Login Failed",
           `Please contact the developers with the following information\n\n${error}`
         );
-        console.log(Object.keys(error.request._response));
-        console.error(error.request);
+        console.error(error);
       }
     }
   };
