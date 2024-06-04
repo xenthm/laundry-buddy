@@ -2,8 +2,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationHelpersContext } from "@react-navigation/native";
 import { Link, router } from "expo-router";
 import React, { useState } from "react";
-import * as SecureStore from 'expo-secure-store';
-import axios from 'axios';
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 import {
   Alert,
   Button,
@@ -35,27 +35,27 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_WSL_IP}:5000/api/auth/login`, {
-        username, 
-        password,
-      });
+      const response = await axios.post(
+        `http://${process.env.EXPO_PUBLIC_WSL_IP}:5000/api/auth/login`,
+        {
+          username,
+          password,
+        }
+      );
 
       const { token } = response.data;
 
-      await SecureStore.setItemAsync('token', token);
+      await SecureStore.setItemAsync("token", token);
       // for now, show the token when login successful
-      Alert.alert('Login Successful', `Token saved successfully!\n\n${token}`);
+      Alert.alert("Login Successful", `Token saved successfully!\n\n${token}`);
     } catch (error) {
       // can use this to see what the response was from the API
       if (error.response && error.response.status === 400) {
-        Alert.alert(
-          'Login Failed', 
-          `${error.response.data.msg}`,
-        );
+        Alert.alert("Login Failed", `${error.response.data.msg}`);
       } else {
         Alert.alert(
-          'Login Failed', 
-          `Please contact the developers with the following information\n\n${error}`,
+          "Login Failed",
+          `Please contact the developers with the following information\n\n${error}`
         );
         console.error(error);
       }
@@ -84,11 +84,11 @@ export default function Login() {
             <TextInput
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
-              keyboardType={showPassword ? 'visible-password' : ''}
+              keyboardType={showPassword ? "visible-password" : ""}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
-              autoComplete='off'
+              autoComplete="off"
               autoCorrect={false}
               autoCapitalize="none"
             />
@@ -110,10 +110,7 @@ export default function Login() {
         </View> */}
 
         <View style={styles.buttonView}>
-          <Pressable
-            style={styles.button}
-            onPress={handleLogin}
-          >
+          <Pressable style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </Pressable>
         </View>
@@ -180,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   icon: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
   },
   rememberView: {
