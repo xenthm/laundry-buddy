@@ -1,8 +1,10 @@
-// TODO: dashboard 
-
+// TODO: dashboard
+import { Tabs } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { NavigationContainer } from "@react-navigation/native";
 import { Link, router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
 import {
   Alert,
   Image,
@@ -14,22 +16,11 @@ import {
   View,
   ImageBackground,
 } from "react-native";
-import { BorderlessButton } from "react-native-gesture-handler";
-
-const logo = require("@/assets/images/icon_laundrybuddy.png");
+import axios from "axios";
 const bg = require("@/assets/images/water.png");
 
-export default function ForgetPassword() {
-  const key = "6274";
-  //TODO: Implement backend retrieval of key
-  const [token, setToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [cfmPassword, setCfmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
+export default function Status() {
+  const [email, setEmail] = useState("");
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -37,8 +28,17 @@ export default function ForgetPassword() {
         resizeMode="cover"
         style={styles.imagebackground}
       >
-        <Image source={logo} style={styles.image} resizeMode="contain" />
-        <Text style={styles.title}>Dashboard</Text>
+        <View style={styles.titleView}>
+          <View style={styles.textView}>
+            <Text style={styles.titleText}>Level</Text>
+          </View>
+          <View style={styles.textView}>
+            <Text style={styles.titleText}>Washer</Text>
+          </View>
+          <View style={styles.textView}>
+            <Text style={styles.titleText}>Dryer</Text>
+          </View>
+        </View>
       </ImageBackground>
     </SafeAreaView>
   );
@@ -59,10 +59,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  title: {
+  titleView: {
+    flex: 3,
+    flexDirection: "row",
+    paddingTop: 20,
+    alignContent: "center",
+  },
+  textView: {
+    flex: 1,
+  },
+  titleText: {
     fontFamily: "Roboto",
-    fontSize: 40,
+    fontSize: 22,
     fontWeight: "bold",
+    alignItems: "center",
     textAlign: "center",
     color: "darkblue",
   },
@@ -96,7 +106,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "black",
     width: 70,
-    backgroundColor:"lightblue",
+    backgroundColor: "lightblue",
     borderRadius: 20,
     padding: 5,
   },

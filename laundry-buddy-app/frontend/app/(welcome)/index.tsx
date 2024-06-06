@@ -20,12 +20,8 @@ import {
 
 const logo = require("@/assets/images/icon_laundrybuddy.png");
 const bg = require("@/assets/images/water.png");
-// const facebook = require("../../assets/facebook.png")
-// const linkedin = require("../../assets/linkedin.png")
-// const tiktok = require("../../assets/tiktok.png")
 
 export default function Login() {
-  const [click, setClick] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +40,8 @@ export default function Login() {
 
       await SecureStore.setItemAsync("token", token);
       // for now, show the token when login successful
-      Alert.alert("Login Successful", `Token saved successfully!\n\n${token}`);
+      Alert.alert("Login Successful", `Token saved successfully!\n\n${token}`); 
+      router.navigate('(main)/status');
     } catch (error) {
       // can use this to see what the response was from the API
       if (error.response && error.response.status === 400) {
@@ -112,7 +109,7 @@ export default function Login() {
           </Pressable>
         </View>
         <View style={styles.signupView}>
-          <Text style={styles.footerText}>Don't Have Account?</Text>
+          <Text style={styles.footerText}>Don't have an account?</Text>
           <Link style={styles.signup} href="/signup">
             Sign Up
           </Link>

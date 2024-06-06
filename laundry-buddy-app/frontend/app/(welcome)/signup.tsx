@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
-import React, { useState } from "react";
-import * as SecureStore from 'expo-secure-store';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 import {
   Alert,
   Button,
@@ -27,35 +27,59 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [cfmPassword, setCfmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [valid, setValid] = useState("");
+  //const [emailValid, setEmailValid] = useState("");
+  useEffect(() => {
+    // Trigger form validation when name,
+    // email, or password changes
+    validateInput();
+  }, [email, password, cfmPassword]);
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
+  const validateInput = () => {
+    if (!/\S+@\S+\.\S+/.test(email) && email) {
+      setValid("Please enter a valid e-mail address.");
+      if (password != cfmPassword) {
+        setValid("Please enter a valid e-mail address. \nPassword and Confirm Password do not match.");
+      }
+    } else if (password != cfmPassword) {
+      setValid("Password and Confirm Password do not match.");
+    } else {
+      setValid("");
+    }
+  };
+
   const handleSignUp = async () => {
     try {
-      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`, {
-        username, 
-        email, 
-        password,
-      });
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`,
+        {
+          username,
+          email,
+          password,
+        }
+      );
 
       const { token } = response.data;
 
-      await SecureStore.setItemAsync('token', token);
+      await SecureStore.setItemAsync("token", token);
       // for now, show the token when sign up successful
-      Alert.alert('Sign Up Successful', `Token saved successfully!\n\n${token}`);
+      Alert.alert(
+        "Sign Up Successful",
+        `Token saved successfully!\n\n${token}`
+      );
     } catch (error) {
       // can use this to see what the response was from the API
       if (error.response && error.response.status === 400) {
-        Alert.alert(
-          'Sign Up Failed', 
-          `${error.response.data.msg}`,
-        );
+        Alert.alert("Sign Up Failed", `${error.response.data.msg}`);
       } else {
         Alert.alert(
-          'Sign Up Failed', 
-          `Please contact the developers with the following information\n\n${error}`,
+          "Sign Up Failed",
+          `Please contact the developers with the following information\n\n${error}`
         );
         console.error(error);
       }
@@ -75,7 +99,7 @@ export default function SignUp() {
         <View style={styles.inputView}>
           <TextInput
             style={styles.input}
-            keyboardType='email-address'
+            keyboardType="email-address"
             placeholder="E-mail"
             value={email}
             onChangeText={setEmail}
@@ -94,12 +118,13 @@ export default function SignUp() {
             <TextInput
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
-              keyboardType={showPassword ? 'visible-password' : ''}
+              keyboardType={showPassword ? "visible-password" : ""}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
+              onBlur={validateInput}
               autoCorrect={false}
-              autoComplete='off'
+              autoComplete="off"
               autoCapitalize="none"
             />
             <MaterialCommunityIcons
@@ -110,6 +135,30 @@ export default function SignUp() {
               onPress={toggleShowPassword}
             />
           </View>
+          <View style={styles.passwordView}>
+            <TextInput
+              secureTextEntry={!showPassword}
+              style={styles.passwordInput}
+              keyboardType={showPassword ? "visible-password" : ""}
+              placeholder="Confirm Password"
+              value={cfmPassword}
+              onChangeText={setCfmPassword}
+              onBlur={validateInput}
+              autoCorrect={false}
+              autoComplete="off"
+              autoCapitalize="none"
+            />
+            <MaterialCommunityIcons
+              name={showPassword ? "eye-off" : "eye"}
+              size={24}
+              color="#aaa"
+              style={styles.icon}
+              onPress={toggleShowPassword}
+            />
+          </View>
+        </View>
+        <View>
+          <Text style={styles.validationText}>{valid}</Text>
         </View>
         <View style={styles.buttonView}>
           <Pressable
@@ -251,5 +300,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
     flexDirection: "row",
+  },
+  validationText: {
+    color: "red",
   },
 });
