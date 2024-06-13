@@ -10,8 +10,45 @@
 #define START_BUTTON 9
 #define LED_PIN 19
 
-bool led_state = false;
+bool state = false;
 elapsedMillis since_press;  // keeps track of time elaspsed between button presses
+HTTPClient http;
+JSONVar jsonObject;
+String requestBody;
+
+void setHTTPClient(const char* endpoint) {
+  String server_path = String(server_name) + endpoint;
+  
+  http.begin(server_path.c_str());
+  http.setTimeout(1000 * 60); // Set timeout to 1 minute
+  http.addHeader("Content-Type", "application/json");
+}
+
+void handleResponse(const String& payload, const int httpResponseCode) {
+  if (httpResponseCode > 0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    Serial.println(payload);
+  } else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+    if (httpResponseCode == -11) {
+      Serial.println("HTTP Connection failed");
+    }
+  }
+}
+
+void sendRequest() {
+  int httpResponseCode = http.POST(JSON.stringify(jsonObject));
+  handleResponse(http.getString(), httpResponseCode);
+}
+
+void toggleState() {
+  state = !state;
+  jsonObject["state"] = state ? "on" : "off";
+  sendRequest();
+  digitalWrite(LED_PIN, state);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -30,36 +67,10 @@ void setup() {
   pinMode(START_BUTTON, INPUT_PULLDOWN);
   pinMode(LED_PIN, OUTPUT);
 
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    String server_path = String(server_name) + "/api/auth/login";
-    http.begin(server_path.c_str());
-    http.setTimeout(1000 * 60); // Set timeout to 1min
-
-    http.addHeader("Content-Type", "application/json");
-    JSONVar jsonObject;
-    jsonObject["username"] = "asdf";
-    jsonObject["password"] = "asdf";
-    String requestBody = JSON.stringify(jsonObject);
-
-    int httpResponseCode = http.POST(requestBody);
-    if (httpResponseCode > 0) {
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-      String payload = http.getString();
-      Serial.println(payload);
-    } else {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-      if (httpResponseCode == -11) {
-        Serial.println("HTTP Connection failed");
-      }
-    }
-
-    http.end();
-  } else {
-    Serial.println("WiFi Disconnected");
-  }
+  setHTTPClient("/api/machine/set-state");
+  jsonObject["machine_id"] = MACHINE_ID;
+  jsonObject["state"] = "off";
+  sendRequest();
 }
 
 void loop() {
@@ -68,9 +79,12 @@ void loop() {
 
   // toggle LED when button is pressed 250ms after previous press
   if (since_press > 250 && digitalRead(START_BUTTON)) {
-    since_press = 0;
-    led_state = !led_state;
-    digitalWrite(LED_PIN, led_state);
+    if (WiFi.status() == WL_CONNECTED) {
+      since_press = 0;
+      toggleState();
+    } else {
+      Serial.println("WiFi Disconnected");
+    } 
   }
 
   delay(100);
