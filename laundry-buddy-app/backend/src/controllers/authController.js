@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const { TOKEN_EXPIRY, BlacklistedToken } = require('../models/Token');
 
 dotenv.config();
 
@@ -12,11 +13,11 @@ const tokenise = id => {
         id: id
       }
     };
-
+    
     jwt.sign(
-      payload, 
+      payload,
       process.env.SECRET_KEY,
-      { expiresIn: '1h' },
+      { expiresIn: `${TOKEN_EXPIRY}ms` }, // in ms
       (err, token) => {
         if (err) reject(err);
         resolve(token);
@@ -35,7 +36,7 @@ exports.register = async (req, res, next) => {
 
   try {
     let user = await User.findOne({ $or: [{ username }, { email }] });
-    
+
     if (user) {
       if (email === user.email) {
         return res.status(400).json({ msg: 'This email address is already been registered' });
@@ -57,7 +58,7 @@ exports.register = async (req, res, next) => {
 // Authenticate user and get token
 exports.login = async (req, res, next) => {
   const { username } = req.body;
-  
+
   if (!username) {
     return res.status(400).json({ msg: 'Please provide username' });
   }
@@ -69,3 +70,30 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+// Logout user and invalidate token
+exports.logout = async (req, res, next) => {
+  const token = req.header('Authorization').replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ msg: 'No token, cannot log out' });
+  }
+
+  const blacklistedToken = await BlacklistedToken.findOne({ token });
+
+  if (blacklistedToken) {
+    return res.status(403).json({ msg: 'Blacklisted token used, authorization denied' });
+  }
+
+  try {
+    const newBlacklistedToken = new BlacklistedToken({
+      token,
+      exp: new Date(Date.now() + TOKEN_EXPIRY),
+    });
+    await newBlacklistedToken.save();
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
