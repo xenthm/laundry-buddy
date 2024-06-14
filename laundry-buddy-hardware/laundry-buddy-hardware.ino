@@ -15,12 +15,10 @@ const bool enableHTTP = true;
 
 bool state = false;
 elapsedMillis since_press;  // keeps track of time elaspsed between button presses
-HTTPClient http;
 JSONVar req;
 
-void setHTTPClient(const char* endpoint) {
-  String server_path = String(server_name) + endpoint;
-  http.begin(server_path.c_str());
+void setHTTPClient(HTTPClient& http, char* endpoint) {
+  http.begin((String(server_name) + endpoint).c_str());
   http.setTimeout(1000 * 90); // Set timeout to 1.5 minutes
   http.addHeader("Content-Type", "application/json");
 }
@@ -40,27 +38,8 @@ void handleResponse(const String& payload, const int httpResponseCode) {
 }
 
 void sendRequest() {
-  int httpResponseCode = http.POST(JSON.stringify(req));
-  handleResponse(http.getString(), httpResponseCode);
-}
-
-void toggleState() {
-  state = !state;
-  req["state"] = state ? "on" : "off";
-  
-  // for testing without sending requests
-  if (enableHTTP) {
-    sendRequest();
-  }
-
-  digitalWrite(LED_PIN, state);
-}
-
-void setup() {
-  Serial.begin(115200);
-
   WiFi.begin(ssid, password);
-  Serial.println("Connecting");
+  Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -69,15 +48,39 @@ void setup() {
   Serial.print("Connected to WiFi network with IP Address: ");
   Serial.println(WiFi.localIP());
 
+  HTTPClient http;
+  setHTTPClient(http, "/api/machine/set-state");
+
+  int httpResponseCode = http.POST(JSON.stringify(req));
+  handleResponse(http.getString(), httpResponseCode);
+  
+  http.end();
+  WiFi.disconnect(true);
+  Serial.println("WiFi Disconnected");
+}
+
+void toggleState() {
+  state = !state;
+  digitalWrite(LED_PIN, state);
+  
+  if (enableHTTP) {
+    req["state"] = state ? "on" : "off";
+    sendRequest();
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
   pinMode(LDR_PIN, INPUT);
   pinMode(START_BUTTON, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
+  
+  req["machine_id"] = MACHINE_ID;
+  req["state"] = "off";
 
   // for testing without sending requests
   if (enableHTTP) {
-    setHTTPClient("/api/machine/set-state");
-    req["machine_id"] = MACHINE_ID;
-    req["state"] = "off";
     sendRequest();
   }
 }
@@ -88,12 +91,8 @@ void loop() {
 
   // toggle LED when button is pressed 250ms after previous press
   if (since_press > 250 && !digitalRead(START_BUTTON)) {
-    if (WiFi.status() == WL_CONNECTED) {
-      since_press = 0;
-      toggleState();
-    } else {
-      Serial.println("WiFi Disconnected");
-    } 
+    since_press = 0;
+    toggleState();
   }
 
   delay(100);
