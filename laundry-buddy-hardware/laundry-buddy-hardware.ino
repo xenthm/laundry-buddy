@@ -11,17 +11,21 @@
 #define LDR_PIN 2
 #define START_BUTTON 9
 #define LED_PIN 19
+#define REED_PIN 10
 
 // for testing without sending requests
 const bool enableHTTP = true;
 
-bool state = false;
-elapsedMillis since_press;  // keeps track of time elaspsed between button presses
+bool is_machine_running = false;
+bool is_door_closed = true;
+bool is_button_pressed = false;
+bool is_laundry_inside = false;
+elapsedMillis since_start;  // keeps track of time elaspsed since machine start
 JSONVar req;
 
 void setHTTPClient(HTTPClient& http, char* endpoint) {
   http.begin((String(server_name) + endpoint).c_str());
-  http.setTimeout(1000 * 90); // Set timeout to 1.5 minutes
+  http.setTimeout(1000 * 120); // Set timeout to 2 minutes
   http.addHeader("Content-Type", "application/json");
 }
 
@@ -39,35 +43,29 @@ void handleResponse(const String& payload, const int httpResponseCode) {
   }
 }
 
-void sendRequest() {
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("Connected to WiFi network with IP Address: ");
-  Serial.println(WiFi.localIP());
-
-  HTTPClient http;
-  setHTTPClient(http, "/api/machine/set-state");
-
-  int httpResponseCode = http.POST(JSON.stringify(req));
-  handleResponse(http.getString(), httpResponseCode);
-  
-  http.end();
-  WiFi.disconnect(true);
-  Serial.println("WiFi Disconnected");
-}
-
-void toggleState() {
-  state = !state;
-  digitalWrite(LED_PIN, state);
-  
+void sendRequest(const bool state) {
   if (enableHTTP) {
     req["state"] = state ? "on" : "off";
-    sendRequest();
+    
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting");
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println("");
+    Serial.print("Connected to WiFi network with IP Address: ");
+    Serial.println(WiFi.localIP());
+
+    HTTPClient http;
+    setHTTPClient(http, "/api/machine/set-state");
+
+    int httpResponseCode = http.POST(JSON.stringify(req));
+    handleResponse(http.getString(), httpResponseCode);
+    
+    http.end();
+    WiFi.disconnect(true);
+    Serial.println("WiFi Disconnected\n");
   }
 }
 
@@ -76,26 +74,49 @@ void setup() {
 
   pinMode(LDR_PIN, INPUT);
   pinMode(START_BUTTON, INPUT_PULLUP);  // needs to be pull up as pin 9 is a strapping pin and will affect booting otherwise
+  pinMode(REED_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
   
+  // resets machine status on database
   req["machineId"] = MACHINE_ID;
   req["machineType"] = MACHINE_TYPE;
   req["state"] = "off";
   req["duration"] = CYCLE_DUR;
-
-  if (enableHTTP) {
-    sendRequest();
-  }
+  sendRequest(false);
 }
 
 void loop() {
-  int analogValue = analogRead(LDR_PIN);
-  Serial.printf("ADC analog value = %d\n", analogValue);
+  is_door_closed = !digitalRead(REED_PIN);
+  is_button_pressed = !digitalRead(START_BUTTON);
 
-  // toggle LED when button is pressed 250ms after previous press
-  if (since_press > 250 && !digitalRead(START_BUTTON)) {
-    since_press = 0;
-    toggleState();
+  // turns LED on to signify start of cycle when button is pressed and door is closed
+  if (!is_machine_running && is_door_closed && is_button_pressed) {
+    // for simulation, prevent starts if door hasn't been opened after a completed cycle
+    if (!is_laundry_inside) {
+      Serial.println("Starting cycle");
+      since_start = 0;
+      is_machine_running = true;
+      digitalWrite(LED_PIN, HIGH);
+    }
+  }
+
+  // turns LED off after end of cycle
+  if (is_machine_running && since_start >= CYCLE_DUR) {
+    Serial.println("Finshed cycle");
+    is_machine_running = false;
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  // addon module check for machine status
+  int ldr_val = analogRead(LDR_PIN);
+  if (!is_laundry_inside && ldr_val > 4000 && is_door_closed) {
+    Serial.println("Detected cycle start");
+    is_laundry_inside = true;
+    sendRequest(true);
+  } else if (is_laundry_inside && ldr_val <= 4000 && !is_door_closed) {
+    Serial.println("Detected laundry collected");
+    is_laundry_inside = false;
+    sendRequest(false);
   }
 
   delay(100);
