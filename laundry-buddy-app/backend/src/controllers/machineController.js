@@ -1,34 +1,50 @@
-const Machine = require('../models/Machine');
+const Machine = require("../models/Machine");
 
 // Controller to handle machine state requests
 exports.setMachineState = async (req, res, next) => {
-  const { machine_id, state } = req.body;
+  const { machineId, machineType, state, duration } = req.body;
 
-  if (!machine_id) {
-    return res.status(400).json({ msg: 'machine_id is required' });
+  if (!machineId) {
+    return res.status(400).json({ msg: "machineId is required" });
+  }
+  
+  if (!["washer", "dryer"].includes(machineType)) {
+    return res.status(400).json({ msg: "Invalid machineType, must be 'washer' or 'dryer'" });
+  }
+  
+  if (!duration) {
+    return res.status(400).json({ msg: "duration is required" });
   }
 
-  if (!['on', 'off'].includes(state)) {
-    return res.status(400).json({ msg: 'Invalid state, must be <on> or <off>' });
+  let endTime;
+  if (state === "on") {
+    endTime = new Date(new Date().getTime() + duration);
+  } else if (state === "off") {
+    endTime = undefined;
+  } else {
+    return res.status(400).json({ msg: "Invalid state, must be 'on' or 'off'" });
   }
 
   try {
-    let machine = await Machine.findOne({ machine_id });
+    let machine = await Machine.findOne({ machineId, machineType });
     let response;
+    let responseSuffix = ` and ends in ${duration / 1000}s (${endTime})`;
 
     if (!machine) {
-      machine = new Machine({ machine_id, state });
+      machine = new Machine({ machineId, machineType, state, duration, endTime });
       await machine.save();
 
-      response = { msg: `Machine <${machine_id}> created and set to <${state}>` };
+      response = { msg: `${machineType} '${machineId}' created and set to ${state}` + (state === "on" ? responseSuffix : "") };
       console.log(response.msg);
       return res.status(201).json(response);
     }
 
     machine.state = state;
+    machine.duration = duration;
+    machine.endTime = endTime;
     await machine.save();
 
-    response = { msg: `Machine <${machine_id}> set to <${state}>` };
+    response = { msg: `${machineType} '${machineId}' set to ${state}` + (state === "on" ? responseSuffix : "") };
     console.log(response.msg);
     res.json(response);
   } catch (err) {

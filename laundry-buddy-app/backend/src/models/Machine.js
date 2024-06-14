@@ -1,15 +1,26 @@
 const mongoose = require('mongoose');
 
 const MachineSchema = new mongoose.Schema({
-  machine_id: {
+  machineId: {
     type: String,
     required: true,
-    unique: true,
+  },
+  machineType: {
+    type: String, 
+    enum: ['washer', 'dryer'],
+    required: true,
   },
   state: {
     type: String,
     enum: ['on', 'off'],
     required: true,
+  },
+  duration: {
+    type: Number,
+    required: true,
+  },
+  endTime: {
+    type: Date,
   },
 }, { versionKey: false });
 

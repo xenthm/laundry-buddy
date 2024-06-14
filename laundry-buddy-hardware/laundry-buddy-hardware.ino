@@ -4,7 +4,9 @@
 #include <elapsedMillis.h>
 #include "config.h" // contains WiFi credentials and server details
 
-#define MACHINE_ID "test machine"
+#define MACHINE_ID "test"
+#define MACHINE_TYPE "washer"
+#define CYCLE_DUR 1000 * 10 // in ms
 
 #define LDR_PIN 2
 #define START_BUTTON 9
@@ -73,13 +75,14 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(LDR_PIN, INPUT);
-  pinMode(START_BUTTON, INPUT_PULLUP);
+  pinMode(START_BUTTON, INPUT_PULLUP);  // needs to be pull up as pin 9 is a strapping pin and will affect booting otherwise
   pinMode(LED_PIN, OUTPUT);
   
-  req["machine_id"] = MACHINE_ID;
+  req["machineId"] = MACHINE_ID;
+  req["machineType"] = MACHINE_TYPE;
   req["state"] = "off";
+  req["duration"] = CYCLE_DUR;
 
-  // for testing without sending requests
   if (enableHTTP) {
     sendRequest();
   }
