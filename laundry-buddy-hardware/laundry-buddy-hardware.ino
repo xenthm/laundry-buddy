@@ -10,17 +10,18 @@
 #define START_BUTTON 9
 #define LED_PIN 19
 
+// for testing without sending requests
+const bool enableHTTP = true;
+
 bool state = false;
 elapsedMillis since_press;  // keeps track of time elaspsed between button presses
 HTTPClient http;
-JSONVar jsonObject;
-String requestBody;
+JSONVar req;
 
 void setHTTPClient(const char* endpoint) {
   String server_path = String(server_name) + endpoint;
-  
   http.begin(server_path.c_str());
-  http.setTimeout(1000 * 60); // Set timeout to 1 minute
+  http.setTimeout(1000 * 90); // Set timeout to 1.5 minutes
   http.addHeader("Content-Type", "application/json");
 }
 
@@ -39,14 +40,19 @@ void handleResponse(const String& payload, const int httpResponseCode) {
 }
 
 void sendRequest() {
-  int httpResponseCode = http.POST(JSON.stringify(jsonObject));
+  int httpResponseCode = http.POST(JSON.stringify(req));
   handleResponse(http.getString(), httpResponseCode);
 }
 
 void toggleState() {
   state = !state;
-  jsonObject["state"] = state ? "on" : "off";
-  sendRequest();
+  req["state"] = state ? "on" : "off";
+  
+  // for testing without sending requests
+  if (enableHTTP) {
+    sendRequest();
+  }
+
   digitalWrite(LED_PIN, state);
 }
 
@@ -64,13 +70,16 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   pinMode(LDR_PIN, INPUT);
-  pinMode(START_BUTTON, INPUT_PULLDOWN);
+  pinMode(START_BUTTON, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
 
-  setHTTPClient("/api/machine/set-state");
-  jsonObject["machine_id"] = MACHINE_ID;
-  jsonObject["state"] = "off";
-  sendRequest();
+  // for testing without sending requests
+  if (enableHTTP) {
+    setHTTPClient("/api/machine/set-state");
+    req["machine_id"] = MACHINE_ID;
+    req["state"] = "off";
+    sendRequest();
+  }
 }
 
 void loop() {
@@ -78,7 +87,7 @@ void loop() {
   Serial.printf("ADC analog value = %d\n", analogValue);
 
   // toggle LED when button is pressed 250ms after previous press
-  if (since_press > 250 && digitalRead(START_BUTTON)) {
+  if (since_press > 250 && !digitalRead(START_BUTTON)) {
     if (WiFi.status() == WL_CONNECTED) {
       since_press = 0;
       toggleState();

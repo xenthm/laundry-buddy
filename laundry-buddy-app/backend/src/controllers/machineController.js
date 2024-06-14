@@ -14,16 +14,23 @@ exports.setMachineState = async (req, res, next) => {
 
   try {
     let machine = await Machine.findOne({ machine_id });
+    let response;
 
     if (!machine) {
       machine = new Machine({ machine_id, state });
       await machine.save();
-      return res.status(201).json({ msg: `${machine_id} created and set to ${state}` });
+
+      response = { msg: `Machine <${machine_id}> created and set to <${state}>` };
+      console.log(response.msg);
+      return res.status(201).json(response);
     }
 
     machine.state = state;
     await machine.save();
-    res.json({ msg: `${machine_id} set to ${state}` });
+
+    response = { msg: `Machine <${machine_id}> set to <${state}>` };
+    console.log(response.msg);
+    res.json(response);
   } catch (err) {
     next(err);
   }
