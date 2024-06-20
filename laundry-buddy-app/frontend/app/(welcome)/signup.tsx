@@ -1,21 +1,18 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import {
   Alert,
-  Button,
   Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
-  Switch,
   Text,
-  TextInput,
   View,
   ImageBackground,
 } from "react-native";
+import { TextInput } from "react-native-paper";
 
 const logo = require("@/assets/images/icon_laundrybuddy.png");
 const bg = require("@/assets/images/water.png");
@@ -100,39 +97,48 @@ export default function SignUp() {
           <TextInput
             style={styles.input}
             keyboardType="email-address"
-            placeholder="E-mail"
+            label="E-mail"
             value={email}
             onChangeText={setEmail}
             autoCorrect={false}
             autoCapitalize="none"
+            mode="outlined"
+              activeOutlineColor="darkblue"
+              left={<TextInput.Icon style={styles.inputIcon} icon="email" />}
           />
           <TextInput
             style={styles.input}
-            placeholder="Username"
+            label="Username"
             value={username}
             onChangeText={setUsername}
             autoCorrect={false}
             autoCapitalize="none"
+            mode="outlined"
+              activeOutlineColor="darkblue"
+              left={<TextInput.Icon style={styles.inputIcon} icon="account" />}
           />
           <View style={styles.passwordView}>
             <TextInput
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
               keyboardType={showPassword ? "visible-password" : ""}
-              placeholder="Password"
+              label="Password"
               value={password}
               onChangeText={setPassword}
               onBlur={validateInput}
               autoCorrect={false}
               autoComplete="off"
               autoCapitalize="none"
-            />
-            <MaterialCommunityIcons
-              name={showPassword ? "eye-off" : "eye"}
-              size={24}
-              color="#aaa"
-              style={styles.icon}
-              onPress={toggleShowPassword}
+              mode="outlined"
+              activeOutlineColor="darkblue"
+              left={<TextInput.Icon style={styles.inputIcon} icon="cellphone-key" />}
+              right={
+                <TextInput.Icon
+                  style={styles.inputIcon}
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={toggleShowPassword}
+                />
+              }
             />
           </View>
           <View style={styles.passwordView}>
@@ -140,20 +146,23 @@ export default function SignUp() {
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
               keyboardType={showPassword ? "visible-password" : ""}
-              placeholder="Confirm Password"
+              label="Confirm Password"
               value={cfmPassword}
               onChangeText={setCfmPassword}
               onBlur={validateInput}
               autoCorrect={false}
               autoComplete="off"
               autoCapitalize="none"
-            />
-            <MaterialCommunityIcons
-              name={showPassword ? "eye-off" : "eye"}
-              size={24}
-              color="#aaa"
-              style={styles.icon}
-              onPress={toggleShowPassword}
+              mode="outlined"
+              activeOutlineColor="darkblue"
+              left={<TextInput.Icon style={styles.inputIcon} icon="checkbox-multiple-outline" />}
+              right={
+                <TextInput.Icon
+                  style={styles.inputIcon}
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={toggleShowPassword}
+                />
+              }
             />
           </View>
         </View>
@@ -212,18 +221,25 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 50,
-    paddingHorizontal: 20,
     borderColor: "lightblue",
-    borderWidth: 2,
-    borderRadius: 20,
+    backgroundColor: "lightblue",
+    margin: 10,
+  },
+  inputIcon:  {
+    paddingTop: 10,
+  },
+  passwordView: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    alignContent: "center",
   },
   passwordInput: {
     flex: 1,
     height: 50,
-    paddingHorizontal: 20,
     borderColor: "lightblue",
-    borderWidth: 2,
-    borderRadius: 20,
+    backgroundColor: "lightblue",
+    margin: 10,
   },
   switch: {
     flexDirection: "row",

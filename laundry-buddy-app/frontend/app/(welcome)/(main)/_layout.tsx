@@ -45,8 +45,7 @@ export default function status() {
       <Tabs.Screen
         name="status"
         options={{
-          headerShown: true,
-          headerTitle: "Hi, " + username + "!",
+          headerShown: false,
           tabBarStyle: { height: 55 },
           tabBarLabel: "Home",
           tabBarIcon: ({ color = "darkblue" }) => (

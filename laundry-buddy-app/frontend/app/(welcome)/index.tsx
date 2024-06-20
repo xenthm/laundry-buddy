@@ -13,10 +13,10 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
   ImageBackground,
 } from "react-native";
+import { TextInput } from "react-native-paper";
 
 const logo = require("@/assets/images/icon_laundrybuddy.png");
 const bg = require("@/assets/images/water.png");
@@ -31,17 +31,20 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/login`, {
-        username, 
-        password,
-      });
-      
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/login`,
+        {
+          username,
+          password,
+        }
+      );
+
       const { token } = response.data;
 
       await SecureStore.setItemAsync("token", token);
       // for now, show the token when login successful
-      Alert.alert("Login Successful", `Token saved successfully!\n\n${token}`); 
-      router.navigate('(main)/status');
+      Alert.alert("Login Successful", `Token saved successfully!\n\n${token}`);
+      router.navigate("(main)/status");
     } catch (error) {
       // can use this to see what the response was from the API
       if (error.response && error.response.status === 400) {
@@ -68,30 +71,38 @@ export default function Login() {
         <View style={styles.inputView}>
           <TextInput
             style={styles.input}
-            placeholder="Username"
+            label="Username"
             value={username}
             onChangeText={setUsername}
             autoCorrect={false}
             autoCapitalize="none"
+            mode="outlined"
+            activeOutlineColor="darkblue"
+            left={<TextInput.Icon style={styles.inputIcon} icon="account" />}
           />
           <View style={styles.passwordView}>
             <TextInput
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
               keyboardType={showPassword ? "visible-password" : ""}
-              placeholder="Password"
+              label="Password"
               value={password}
               onChangeText={setPassword}
               autoComplete="off"
               autoCorrect={false}
               autoCapitalize="none"
-            />
-            <MaterialCommunityIcons
-              name={showPassword ? "eye-off" : "eye"}
-              size={24}
-              color="#aaa"
-              style={styles.icon}
-              onPress={toggleShowPassword}
+              mode="outlined"
+              activeOutlineColor="darkblue"
+              left={
+                <TextInput.Icon style={styles.inputIcon} icon="cellphone-key" />
+              }
+              right={
+                <TextInput.Icon
+                  style={styles.inputIcon}
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={toggleShowPassword}
+                />
+              }
             />
           </View>
         </View>
@@ -151,24 +162,25 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 50,
-    paddingHorizontal: 20,
     borderColor: "lightblue",
-    borderWidth: 2,
-    borderRadius: 20,
+    backgroundColor: "lightblue",
+    margin: 10,
+  },
+  inputIcon: {
+    paddingTop: 10,
   },
   passwordView: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    alignContent: "center",
   },
   passwordInput: {
     flex: 1,
     height: 50,
-    paddingHorizontal: 20,
     borderColor: "lightblue",
-    borderWidth: 2,
-    borderRadius: 20,
+    backgroundColor: "lightblue",
+    margin: 10,
   },
   icon: {
     position: "absolute",

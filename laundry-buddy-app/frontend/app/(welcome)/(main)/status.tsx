@@ -1,52 +1,150 @@
-// TODO: dashboard
-import { Tabs } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { NavigationContainer } from "@react-navigation/native";
-import { Link, router } from "expo-router";
-import React, { useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
+import React, { createContext, useContext, useState } from "react";
+import LevelMachines from "@/components/LevelMachines";
 import {
-  Alert,
-  Image,
-  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   ImageBackground,
+  Modal,
+  TouchableOpacity,
+  Button,
 } from "react-native";
-import axios from "axios";
+import { IconButton, FAB, Portal, PaperProvider } from "react-native-paper";
+import TypeModal from "@/components/TypeModal";
+import { TypeStateContext } from "@/contexts/TypeStateContext";
+
+
 const bg = require("@/assets/images/water.png");
 
 export default function Status() {
-  const [email, setEmail] = useState("");
+  const [showWatchText, setShowWatchText] = useState(true);
+  const [state, setState] = React.useState({ open: false });
+  // state variable for both the ID and Type Modal
+  //const context = useContext(TypeStateContext);
+  const [isIDModalOpen, setIDModalOpen] = useState(false);
+  const onStateChange = ({ open }) => setState({ open });
+  const { open } = state;
+  const [isTypeModalOpen, setTypeModalOpen] = useState(false);
+  const toggleTypeModalVisibility = () => {
+    setTypeModalOpen(!isTypeModalOpen);
+  };
+  //if user is watching a machine, set showWatchText to FALSE
   return (
-    <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={bg}
-        resizeMode="cover"
-        style={styles.imagebackground}
-      >
-        <View style={styles.titleView}>
-          <View style={styles.textView}>
-            <Text style={styles.titleText}>Level</Text>
-          </View>
-          <View style={styles.textView}>
-            <Text style={styles.titleText}>Washer</Text>
-          </View>
-          <View style={styles.textView}>
-            <Text style={styles.titleText}>Dryer</Text>
-          </View>
-        </View>
-      </ImageBackground>
-    </SafeAreaView>
+    <TypeStateContext.Provider value={{isTypeModalOpen, setTypeModalOpen}}>
+      <SafeAreaView style={styles.container}>
+        <ImageBackground
+          source={bg}
+          resizeMode="cover"
+          style={styles.imagebackground}
+        >
+          <PaperProvider>
+            <View style={styles.optionsView}>
+              <IconButton
+                icon="account-circle"
+                size={50}
+                onPress={() => console.log("Pressed")}
+              />
+              <IconButton
+                icon="cog"
+                size={50}
+                onPress={() => console.log("Pressed")}
+              />
+            </View>
+            <View style={styles.dashboard}>
+              <View style={styles.titleView}>
+                <Text style={styles.titleText}>Level</Text>
+                <Text style={styles.titleText}>Washer</Text>
+                <Text style={styles.titleText}>Dryer</Text>
+              </View>
+              <View style={styles.machineContainer}>
+                <LevelMachines
+                  level={17}
+                  freeWashers={1}
+                  totalWasher={5}
+                  freeDryers={2}
+                  totalDryers={4}
+                >
+                  {" "}
+                </LevelMachines>
+                <LevelMachines
+                  level={9}
+                  freeWashers={3}
+                  totalWasher={5}
+                  freeDryers={4}
+                  totalDryers={4}
+                >
+                  {" "}
+                </LevelMachines>
+              </View>
+              <View style={styles.titleView}>
+                <Text style={styles.titleText}>Now Watching</Text>
+              </View>
+              <View style={styles.watchingView}>
+                <Text style={styles.watchText}>
+                  {showWatchText
+                    ? "You are currently not watching any machines. Press the '+' button to watch a machine."
+                    : ""}
+                </Text>
+              </View>
+            </View>
+            <Portal>
+              <FAB.Group
+                style={styles.fab}
+                open={open}
+                visible
+                icon={open ? "filter-menu" : "plus"}
+                label={open ? "Filter watch by" : ""}
+                fabStyle={styles.fabButton}
+                color="black"
+                backdropColor="#ffffff00"
+                actions={[
+                  {
+                    icon: "bash",
+                    label: "Machine ID",
+                    color: "black",
+                    style: { backgroundColor: "lightblue" },
+                    onPress: () => setIDModalOpen(true),
+                  },
+                  {
+                    icon: "tumble-dryer",
+                    label: "Machine Type",
+                    color: "black",
+                    style: { backgroundColor: "lightblue" },
+                    onPress: () => toggleTypeModalVisibility(),
+                  },
+                ]}
+                onStateChange={onStateChange}
+                onPress={() => {
+                  if (open) {
+                    // do something if the speed dial is open
+                  }
+                }}
+              />
+            </Portal>
+          </PaperProvider>
+          <TypeModal></TypeModal>
+        </ImageBackground>
+      </SafeAreaView>
+    </TypeStateContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: "center",
+    alignItems: "flex-start",
+  },
+  dashboard: {
+    height: "100%",
+    paddingTop: 10,
+    alignItems: "flex-start",
+  },
+  machineContainer: {
+    paddingTop: 10,
+    alignItems: "flex-start",
+  },
+  ratioContainer: {
+    flexDirection: "row",
   },
   image: {
     height: 240,
@@ -59,14 +157,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  machinebackground: {
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderCurve: "continuous",
+    borderRadius: 20,
+    width: "80%",
+  },
   titleView: {
-    flex: 3,
     flexDirection: "row",
+    paddingTop: 10,
+    alignItems: "flex-start",
+  },
+  watchingView: {
+    flexDirection: "column",
     paddingTop: 20,
     alignContent: "center",
-  },
-  textView: {
-    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
   },
   titleText: {
     fontFamily: "Roboto",
@@ -75,89 +185,107 @@ const styles = StyleSheet.create({
     alignItems: "center",
     textAlign: "center",
     color: "darkblue",
-  },
-  subtitle: {
-    fontFamily: "Roboto",
-    fontSize: 17,
-    textAlign: "center",
-    paddingBottom: 20,
-    color: "black",
-    width: "60%",
-  },
-  tokenView: {
-    width: "100%",
-    paddingHorizontal: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    paddingBottom: 10,
-  },
-  tokenText: {
-    fontSize: 17,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    paddingRight: 10,
-    fontWeight: "bold",
-  },
-  keyText: {
-    fontFamily: "Roboto",
-    fontSize: 17,
-    textAlign: "center",
-    color: "black",
-    width: 70,
-    backgroundColor: "lightblue",
-    borderRadius: 20,
-    padding: 5,
-  },
-  inputView: {
-    gap: 15,
-    width: "100%",
-    paddingHorizontal: 40,
-    marginBottom: 5,
-  },
-  input: {
-    height: 50,
-    paddingHorizontal: 20,
-    borderColor: "lightblue",
-    borderWidth: 2,
-    borderRadius: 20,
-  },
-  passwordInput: {
     flex: 1,
-    height: 50,
-    paddingHorizontal: 20,
-    borderColor: "lightblue",
-    borderWidth: 2,
-    borderRadius: 20,
   },
-  passwordView: {
+  levelFullView: {
+    flexDirection: "row",
+    padding: 15,
+    alignContent: "center",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    borderBottomWidth: 2,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    borderBottomColor: "lightgrey",
+  },
+  levelView: {
+    flex: 1,
+  },
+  optionsView: {
+    paddingTop: 50,
     width: "100%",
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
-  icon: {
-    position: "absolute",
-    right: 20,
-  },
-  button: {
-    backgroundColor: "blue",
-    height: 45,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
+  levelText: {
+    fontFamily: "Roboto",
+    fontSize: 22,
     fontWeight: "bold",
+    alignItems: "center",
+    textAlign: "center",
+    color: "black",
   },
-  buttonView: {
+  freeText: {
+    fontFamily: "Roboto",
+    fontSize: 22,
+    alignItems: "center",
+    textAlign: "center",
+    color: "black",
+  },
+  watchText: {
+    fontSize: 16,
+    alignSelf: "flex-start",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    textAlign: "center",
+    color: "black",
+    paddingHorizontal: 30,
+  },
+  availableText: {
+    fontFamily: "Roboto",
+    fontSize: 12,
+    alignItems: "center",
+    textAlign: "center",
+    color: "black",
+  },
+  machinesText: {
+    fontFamily: "Roboto",
+    fontSize: 22,
+    alignItems: "center",
+    textAlign: "center",
+    color: "black",
+  },
+  actionButtonIcon: {
+    fontSize: 20,
+    height: 22,
+    color: "white",
+  },
+  fab: {
+    position: "absolute",
+    margin: 16,
+    right: 10,
+    bottom: 0,
+  },
+  fabButton: {
+    color: "blue",
+    backgroundColor: "lightblue",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: 300,
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    marginBottom: 20,
+  },
+  optionButton: {
+    padding: 10,
+    marginVertical: 5,
+    backgroundColor: "#ddd",
+    borderRadius: 5,
     width: "100%",
-    paddingHorizontal: 50,
-    paddingTop: 10,
+    alignItems: "center",
+  },
+  optionText: {
+    fontSize: 16,
   },
 });
