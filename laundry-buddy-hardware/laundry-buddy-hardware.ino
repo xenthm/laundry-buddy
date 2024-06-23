@@ -102,7 +102,7 @@ void loop() {
 
   // turns LED off after end of cycle
   if (is_machine_running && since_start >= CYCLE_DUR) {
-    Serial.println("Finshed cycle");
+    Serial.println("Finished cycle");
     is_machine_running = false;
     digitalWrite(LED_PIN, LOW);
   }
