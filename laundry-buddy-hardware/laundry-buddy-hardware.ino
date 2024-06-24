@@ -54,8 +54,9 @@ void sendRequest(const bool state) {
       Serial.print(".");
     }
     Serial.println("");
-    Serial.print("Connected to WiFi network with IP Address: ");
-    Serial.println(WiFi.localIP());
+    Serial.println("Connected to WiFi");
+    // Serial.print("Connected to WiFi network with IP Address: ");
+    // Serial.println(WiFi.localIP());
 
     HTTPClient http;
     setHTTPClient(http, "/api/machine/set-state");
@@ -93,7 +94,7 @@ void loop() {
   if (!is_machine_running && is_door_closed && is_button_pressed) {
     // for simulation, prevent starts if door hasn't been opened after a completed cycle
     if (!is_laundry_inside) {
-      Serial.println("Starting cycle");
+      Serial.println("Starting cycle\n");
       since_start = 0;
       is_machine_running = true;
       digitalWrite(LED_PIN, HIGH);
@@ -102,7 +103,7 @@ void loop() {
 
   // turns LED off after end of cycle
   if (is_machine_running && since_start >= CYCLE_DUR) {
-    Serial.println("Finished cycle");
+    Serial.println("Finished cycle\n");
     is_machine_running = false;
     digitalWrite(LED_PIN, LOW);
   }
@@ -110,11 +111,11 @@ void loop() {
   // addon module check for machine status
   int ldr_val = analogRead(LDR_PIN);
   if (!is_laundry_inside && ldr_val > 4000 && is_door_closed) {
-    Serial.println("Detected cycle start");
+    Serial.println("Detected cycle start\n");
     is_laundry_inside = true;
     sendRequest(true);
   } else if (is_laundry_inside && ldr_val <= 4000 && !is_door_closed) {
-    Serial.println("Detected laundry collected");
+    Serial.println("Detected laundry collected\n");
     is_laundry_inside = false;
     sendRequest(false);
   }
