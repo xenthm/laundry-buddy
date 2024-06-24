@@ -59,10 +59,6 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   const { username } = req.body;
 
-  if (!username) {
-    return res.status(400).json({ msg: 'Please provide username' });
-  }
-
   try {
     const token = await tokenise(req.user.id);
     return res.json({ token });
@@ -92,7 +88,7 @@ exports.logout = async (req, res, next) => {
     });
     await newBlacklistedToken.save();
 
-    res.json({ message: 'Logged out successfully' });
+    res.json({ msg: 'Logged out successfully' });
   } catch (err) {
     next(err);
   }

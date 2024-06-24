@@ -29,7 +29,7 @@ const verifyPassword = async (req, res, next) => {
     const isMatch = await req.user.matchPassword(password);
     if (req.originalUrl === '/api/auth/login') {
       if (!isMatch) {
-        return res.status(400).json({ msg: 'Password is incorrect' });
+        return res.status(401).json({ msg: 'Password is incorrect' });
       }
     } else if (req.originalUrl === '/api/user/change-password') {
       if (!isMatch) {

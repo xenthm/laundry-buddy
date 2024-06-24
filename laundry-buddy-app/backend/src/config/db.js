@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const connectDB = async () => {
+exports.connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB connected');
@@ -23,4 +23,11 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+exports.disconnectDB = async () => {
+  mongoose.connection.removeAllListeners();
+  await mongoose.connection.close();
+}
+
+exports.isConnected = () => {
+  return mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2;  // 1 is connected
+}
