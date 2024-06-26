@@ -15,13 +15,13 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/', resetRoutes);
+app.use('/api', resetRoutes);
 app.use('/api/machine', machineRoutes);
 
 // Global error handling
 app.use((err, req, res, next) => {
   console.error(err.message);
-  res.status(500).send('Server error');
+  res.status(500).send('Server error. Check logs.');
 });
 
 module.exports = app;

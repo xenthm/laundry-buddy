@@ -28,6 +28,7 @@ exports.stopInterval = () => {
   clearInterval(intervalId);
 }
 
+// Clears token from blacklisted tokens (for testing)
 exports.clearBlacklistedToken = async (token) => {
   try {
     await this.BlacklistedToken.findOneAndDelete({ token });
