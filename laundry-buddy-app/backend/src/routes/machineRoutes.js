@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { setMachineState } = require('../controllers/machineController');
+const { findMachine } = require('../middlewares/machineMiddleware');
+const { getMachine, setMachineState } = require('../controllers/machineController');
+
+// Route for getting machine state
+router.get('/', findMachine, getMachine);
 
 // Route for setting machine state
-router.post('/set-state', setMachineState);
+router.post('/', setMachineState);
 
 module.exports = router;

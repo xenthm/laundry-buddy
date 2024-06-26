@@ -1,5 +1,14 @@
 const Machine = require("../models/Machine");
 
+// Get machine details
+exports.getMachine = async (req, res, next) => {
+  try {
+    res.json(req.machine);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Controller to handle machine state requests
 exports.setMachineState = async (req, res, next) => {
   const { machineId, machineType, state, duration } = req.body;
@@ -7,11 +16,11 @@ exports.setMachineState = async (req, res, next) => {
   if (!machineId) {
     return res.status(400).json({ msg: "machineId is required" });
   }
-  
+
   if (!["washer", "dryer"].includes(machineType)) {
     return res.status(400).json({ msg: "Invalid machineType, must be 'washer' or 'dryer'" });
   }
-  
+
   if (!duration) {
     return res.status(400).json({ msg: "duration is required" });
   }
@@ -34,7 +43,7 @@ exports.setMachineState = async (req, res, next) => {
       machine = new Machine({ machineId, machineType, state, duration, endTime });
       await machine.save();
 
-      response = { msg: `${machineType} '${machineId}' created and set to ${state}` + (state === "on" ? responseSuffix : "") };
+      response = { msg: `Machine not found. ${machineType} '${machineId}' created and set to ${state}` + (state === "on" ? responseSuffix : "") };
       console.log(response.msg);
       return res.status(201).json(response);
     }
