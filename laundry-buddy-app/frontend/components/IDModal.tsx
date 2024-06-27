@@ -1,5 +1,5 @@
 import { EntriesContext } from "@/contexts/EntriesContext";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState } from "react";
 import {
   Modal,
   TouchableOpacity,
@@ -8,17 +8,18 @@ import {
   Button,
   StyleSheet,
 } from "react-native";
+import { Dropdown } from "react-native-element-dropdown";
 import React from "react";
 
-// This modal searches for the fastest completed machine with the chosen requirements
-// These requirements are either by floor (or any floor) or by machine type
+// This modal allows users to watch a specific machine in the laundry room
 
-const TypeModal = ({ visible, onClose }) => {
-  //const { isTypeModalOpen, setTypeModalOpen } = useContext(TypeStateContext);
+const IDModal = ({ visible, onClose }) => {
   const { entries, setEntries } = useContext(EntriesContext);
 
   const [selectedType, setSelectedType] = useState("Washer");
   const [selectedFloor, setSelectedFloor] = useState("9");
+  const [selectedID, setSelectedID] = useState("");
+  const [isFocus, setIsFocus] = useState(false);
   // current timer is dummy timer
   const [timer, setTimer] = useState("30:00");
 
@@ -30,29 +31,44 @@ const TypeModal = ({ visible, onClose }) => {
     setSelectedFloor(option);
   };
 
+  const renderLabel = () => {
+    if (selectedID || isFocus) {
+      return (
+        <Text style={[styles.label, isFocus && { color: "darkblue" }]}>
+          Machine ID
+        </Text>
+      );
+    }
+    return null;
+  };
+
   const addEntry = () => {
-    // setNewEntry(selectedFloor + " " + selectedType);
     setEntries([
       ...entries,
-      {
-        id: entries.length,
-        floor: selectedFloor,
-        type: selectedType,
-        time: timer,
-      },
+      { id: selectedID, floor: selectedFloor, type: selectedType, time: timer },
     ]);
     console.log("Floor: " + selectedFloor + " Type: " + selectedType);
     console.log("Entries now..." + entries.length);
     onClose();
   };
 
+  const dataWasher = [
+    { label: "Washer A", value: "A" },
+    { label: "Washer B", value: "B" },
+    { label: "Washer C", value: "C" },
+    { label: "Washer D", value: "D" },
+    { label: "Washer E", value: "E" },
+  ];
+
+  const dataDryer = [
+    { label: "Dryer A", value: "A" },
+    { label: "Dryer B", value: "B" },
+    { label: "Dryer C", value: "C" },
+    { label: "Dryer D", value: "D" },
+  ];
+
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      // onRequestClose={toggleTypeModalVisibility}
-    >
+    <Modal animationType="slide" transparent={true} visible={visible}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Machine Type</Text>
@@ -127,6 +143,30 @@ const TypeModal = ({ visible, onClose }) => {
               </Text>
             </TouchableOpacity>
           </View>
+          <View style={styles.dropContainer}>
+            {renderLabel()}
+            <Dropdown
+              style={[styles.dropdown, isFocus && { borderColor: "blue" }]}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              data={selectedType == "Washer" ? dataWasher : dataDryer}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder={!isFocus ? "Select ID" : "..."}
+              searchPlaceholder="Search..."
+              value={selectedID}
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+              onChange={(item) => {
+                setSelectedID(item.value);
+                setIsFocus(false);
+              }}
+            />
+          </View>
           <View style={styles.buttonContainer}>
             <Button title="Cancel" color="red" onPress={onClose} />
             <Button title="Watch" onPress={addEntry} />
@@ -195,6 +235,45 @@ const styles = StyleSheet.create({
   selectedText: {
     color: "#fff",
   },
+  label: {
+    position: "absolute",
+    backgroundColor: "white",
+    left: 22,
+    top: 8,
+    zIndex: 999,
+    paddingHorizontal: 8,
+    fontSize: 14,
+  },
+  dropdown: {
+    height: 50,
+    width: "70%",
+    borderColor: "gray",
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+  },
+  placeholderStyle: {
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+  },
+  dropContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+    marginBottom: 5,
+    flexDirection: "row",
+    padding: 16,
+  },
 });
 
-export default TypeModal;
+export default IDModal;

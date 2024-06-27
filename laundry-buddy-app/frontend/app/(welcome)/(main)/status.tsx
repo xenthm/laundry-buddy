@@ -6,32 +6,35 @@ import {
   Text,
   View,
   ImageBackground,
-  Modal,
-  TouchableOpacity,
-  Button,
+  FlatList,
 } from "react-native";
 import { IconButton, FAB, Portal, PaperProvider } from "react-native-paper";
 import TypeModal from "@/components/TypeModal";
-import { TypeStateContext } from "@/contexts/TypeStateContext";
-
+import { EntriesContext } from "@/contexts/EntriesContext";
+import IDModal from "@/components/IDModal";
 
 const bg = require("@/assets/images/water.png");
 
 export default function Status() {
-  const [showWatchText, setShowWatchText] = useState(true);
+  const [placeholder] = useState(
+    "Your are not watching any machines now. Select the '+' button to watch a machine."
+  );
+  const [entries, setEntries] = useState([]);
   const [state, setState] = React.useState({ open: false });
-  // state variable for both the ID and Type Modal
-  //const context = useContext(TypeStateContext);
-  const [isIDModalOpen, setIDModalOpen] = useState(false);
   const onStateChange = ({ open }) => setState({ open });
   const { open } = state;
   const [isTypeModalOpen, setTypeModalOpen] = useState(false);
   const toggleTypeModalVisibility = () => {
     setTypeModalOpen(!isTypeModalOpen);
   };
-  //if user is watching a machine, set showWatchText to FALSE
+
+  const [isIDModalOpen, setIDModalOpen] = useState(false);
+  const toggleIDModalVisibility = () => {
+    setIDModalOpen(!isIDModalOpen);
+    console.log(entries.length);
+  };
   return (
-    <TypeStateContext.Provider value={{isTypeModalOpen, setTypeModalOpen}}>
+    <EntriesContext.Provider value={{ entries, setEntries }}>
       <SafeAreaView style={styles.container}>
         <ImageBackground
           source={bg}
@@ -81,11 +84,26 @@ export default function Status() {
                 <Text style={styles.titleText}>Now Watching</Text>
               </View>
               <View style={styles.watchingView}>
-                <Text style={styles.watchText}>
-                  {showWatchText
-                    ? "You are currently not watching any machines. Press the '+' button to watch a machine."
-                    : ""}
-                </Text>
+                {!entries.length ? (
+                  <Text style={styles.watchText}>{placeholder}</Text>
+                ) : (
+                  <FlatList
+                    contentContainerStyle={styles.list}
+                    data={entries}
+                    keyExtractor={(item) => (item.id).toString()}
+                    renderItem={({ item }) => (
+                      <View style={styles.entryView}>
+                      <Text style={styles.entry}>
+                        Level {item.floor}
+                      </Text>
+                      <Text style={styles.entry}> {item.type} {item.id}
+                      </Text>
+                      <Text style={styles.entry}> {item.time}
+                      </Text>
+                      </View>
+                    )}
+                  />
+                )}
               </View>
             </View>
             <Portal>
@@ -104,7 +122,7 @@ export default function Status() {
                     label: "Machine ID",
                     color: "black",
                     style: { backgroundColor: "lightblue" },
-                    onPress: () => setIDModalOpen(true),
+                    onPress: () => toggleIDModalVisibility(),
                   },
                   {
                     icon: "tumble-dryer",
@@ -123,10 +141,17 @@ export default function Status() {
               />
             </Portal>
           </PaperProvider>
-          <TypeModal></TypeModal>
+          <TypeModal
+            visible={isTypeModalOpen}
+            onClose={() => setTypeModalOpen(false)}
+          ></TypeModal>
+           <IDModal
+            visible={isIDModalOpen}
+            onClose={() => setIDModalOpen(false)}
+          ></IDModal>
         </ImageBackground>
       </SafeAreaView>
-    </TypeStateContext.Provider>
+    </EntriesContext.Provider>
   );
 }
 
@@ -171,12 +196,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   watchingView: {
-    flexDirection: "column",
+    flexDirection: "row",
     paddingTop: 20,
     alignContent: "center",
     alignItems: "center",
     justifyContent: "center",
-    textAlign: "center",
   },
   titleText: {
     fontFamily: "Roboto",
@@ -287,5 +311,27 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
+  },
+  list: {
+    flexGrow: 1,
+    justifyContent: "space-around",
+  },
+  entryView: {
+    flexDirection: "row",
+    padding: 10,
+    width: 340,
+    backgroundColor: "#add8e6",
+    marginVertical: 5,
+    borderRadius: 10,
+    alignContent: "center",
+    justifyContent: "space-around",
+    alignSelf: "center",
+  },
+  entry: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    alignItems: "center",
+    alignSelf: "center",
   },
 });
