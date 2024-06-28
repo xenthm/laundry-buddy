@@ -18,7 +18,7 @@ const IDModal = ({ visible, onClose }) => {
 
   const [selectedType, setSelectedType] = useState("Washer");
   const [selectedFloor, setSelectedFloor] = useState("9");
-  const [selectedID, setSelectedID] = useState("");
+  const [selectedAlphaID, setSelectedAlphaID] = useState("");
   const [isFocus, setIsFocus] = useState(false);
   // current timer is dummy timer
   const [timer, setTimer] = useState("30:00");
@@ -32,7 +32,7 @@ const IDModal = ({ visible, onClose }) => {
   };
 
   const renderLabel = () => {
-    if (selectedID || isFocus) {
+    if (selectedAlphaID || isFocus) {
       return (
         <Text style={[styles.label, isFocus && { color: "darkblue" }]}>
           Machine ID
@@ -45,7 +45,13 @@ const IDModal = ({ visible, onClose }) => {
   const addEntry = () => {
     setEntries([
       ...entries,
-      { id: selectedID, floor: selectedFloor, type: selectedType, time: timer },
+      {
+        id: selectedFloor + selectedType + selectedAlphaID,
+        alpha_id: selectedAlphaID,
+        floor: selectedFloor,
+        type: selectedType,
+        time: timer,
+      },
     ]);
     console.log("Floor: " + selectedFloor + " Type: " + selectedType);
     console.log("Entries now..." + entries.length);
@@ -76,14 +82,14 @@ const IDModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedType === "Washer" && styles.selectedButton,
+                selectedType === "W" && styles.selectedButton,
               ]}
-              onPress={() => handleTypeSelect("Washer")}
+              onPress={() => handleTypeSelect("W")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedType === "Washer" && styles.selectedText,
+                  selectedType === "W" && styles.selectedText,
                 ]}
               >
                 Washer
@@ -93,14 +99,14 @@ const IDModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedType === "Dryer" && styles.selectedButton,
+                selectedType === "D" && styles.selectedButton,
               ]}
               onPress={() => handleTypeSelect("Dryer")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedType === "Dryer" && styles.selectedText,
+                  selectedType === "D" && styles.selectedText,
                 ]}
               >
                 Dryer
@@ -151,18 +157,18 @@ const IDModal = ({ visible, onClose }) => {
               selectedTextStyle={styles.selectedTextStyle}
               inputSearchStyle={styles.inputSearchStyle}
               iconStyle={styles.iconStyle}
-              data={selectedType == "Washer" ? dataWasher : dataDryer}
+              data={selectedType == "W" ? dataWasher : dataDryer}
               search
               maxHeight={300}
               labelField="label"
               valueField="value"
               placeholder={!isFocus ? "Select ID" : "..."}
               searchPlaceholder="Search..."
-              value={selectedID}
+              value={selectedAlphaID}
               onFocus={() => setIsFocus(true)}
               onBlur={() => setIsFocus(false)}
               onChange={(item) => {
-                setSelectedID(item.value);
+                setSelectedAlphaID(item.value);
                 setIsFocus(false);
               }}
             />

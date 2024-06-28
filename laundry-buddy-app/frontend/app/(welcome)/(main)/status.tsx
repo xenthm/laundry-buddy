@@ -33,6 +33,12 @@ export default function Status() {
     setIDModalOpen(!isIDModalOpen);
     console.log(entries.length);
   };
+
+  const deleteEntry = (id) => {
+    setEntries((entries) => {
+      return entries.filter(item => item.id !== id);
+    });
+  };
   return (
     <EntriesContext.Provider value={{ entries, setEntries }}>
       <SafeAreaView style={styles.container}>
@@ -90,16 +96,24 @@ export default function Status() {
                   <FlatList
                     contentContainerStyle={styles.list}
                     data={entries}
-                    keyExtractor={(item) => (item.id).toString()}
+                    keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                      <View style={styles.entryView}>
-                      <Text style={styles.entry}>
-                        Level {item.floor}
-                      </Text>
-                      <Text style={styles.entry}> {item.type} {item.id}
-                      </Text>
-                      <Text style={styles.entry}> {item.time}
-                      </Text>
+                      <View style={styles.entryFullView}>
+                        <View style={styles.entryView}>
+                          {/* If item.type == A, needs to be handled by backend to determine
+                          which level has the fastest machine time */}
+                          <Text style={styles.entry}>Level {item.floor}</Text>
+                          <Text style={styles.entry}>
+                            {" "}
+                            { item.type == "W" ? "Washer": "Dryer"} {item.alpha_id}
+                          </Text>
+                          <Text style={styles.entry}> {item.time}</Text>
+                        </View>
+                        <IconButton
+                          icon="trash-can-outline"
+                          size={30}
+                          onPress={() => deleteEntry(item.id)}
+                        />
                       </View>
                     )}
                   />
@@ -133,11 +147,6 @@ export default function Status() {
                   },
                 ]}
                 onStateChange={onStateChange}
-                onPress={() => {
-                  if (open) {
-                    // do something if the speed dial is open
-                  }
-                }}
               />
             </Portal>
           </PaperProvider>
@@ -145,7 +154,7 @@ export default function Status() {
             visible={isTypeModalOpen}
             onClose={() => setTypeModalOpen(false)}
           ></TypeModal>
-           <IDModal
+          <IDModal
             visible={isIDModalOpen}
             onClose={() => setIDModalOpen(false)}
           ></IDModal>
@@ -316,10 +325,19 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "space-around",
   },
+  entryFullView: {
+    flexDirection: "row",
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 10,
+    alignContent: "center",
+    justifyContent: "space-around",
+    alignSelf: "center",
+  },
   entryView: {
     flexDirection: "row",
     padding: 10,
-    width: 340,
+    width: 300,
     backgroundColor: "#add8e6",
     marginVertical: 5,
     borderRadius: 10,
@@ -329,7 +347,6 @@ const styles = StyleSheet.create({
   },
   entry: {
     fontSize: 20,
-    fontWeight: "bold",
     textAlign: "center",
     alignItems: "center",
     alignSelf: "center",

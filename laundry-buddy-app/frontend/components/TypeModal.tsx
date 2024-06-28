@@ -19,6 +19,10 @@ const TypeModal = ({ visible, onClose }) => {
 
   const [selectedType, setSelectedType] = useState("Washer");
   const [selectedFloor, setSelectedFloor] = useState("9");
+
+  // TODO: (for backend) return the correct alpha ID for fastest
+  // completed machine
+  const [selectedAlphaID, setSelectedAlphaID] = useState("A");
   // current timer is dummy timer
   const [timer, setTimer] = useState("30:00");
 
@@ -35,13 +39,13 @@ const TypeModal = ({ visible, onClose }) => {
     setEntries([
       ...entries,
       {
-        id: entries.length,
+        id: selectedFloor + selectedType + selectedAlphaID,
+        alpha_id: selectedAlphaID,
         floor: selectedFloor,
         type: selectedType,
         time: timer,
       },
     ]);
-    console.log("Floor: " + selectedFloor + " Type: " + selectedType);
     console.log("Entries now..." + entries.length);
     onClose();
   };
@@ -51,7 +55,6 @@ const TypeModal = ({ visible, onClose }) => {
       animationType="slide"
       transparent={true}
       visible={visible}
-      // onRequestClose={toggleTypeModalVisibility}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
@@ -60,14 +63,14 @@ const TypeModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedType === "Washer" && styles.selectedButton,
+                selectedType === "W" && styles.selectedButton,
               ]}
-              onPress={() => handleTypeSelect("Washer")}
+              onPress={() => handleTypeSelect("W")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedType === "Washer" && styles.selectedText,
+                  selectedType === "W" && styles.selectedText,
                 ]}
               >
                 Washer
@@ -77,14 +80,14 @@ const TypeModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedType === "Dryer" && styles.selectedButton,
+                selectedType === "D" && styles.selectedButton,
               ]}
-              onPress={() => handleTypeSelect("Dryer")}
+              onPress={() => handleTypeSelect("D")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedType === "Dryer" && styles.selectedText,
+                  selectedType === "D" && styles.selectedText,
                 ]}
               >
                 Dryer
@@ -92,40 +95,57 @@ const TypeModal = ({ visible, onClose }) => {
             </TouchableOpacity>
           </View>
           <Text style={styles.modalTitle}>Floor</Text>
-          <View style={styles.optionContainer}>
+          <View style={styles.optionTopContainer}>
             <TouchableOpacity
               style={[
-                styles.optionButton,
-                selectedFloor === "" && styles.selectedButton,
+                styles.optionAllButton,
+                selectedFloor === "A" && styles.selectedButton,
               ]}
-              onPress={() => handleFloorSelect("9")}
+              onPress={() => handleFloorSelect("A")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedFloor === "9" && styles.selectedText,
+                  selectedFloor === "A" && styles.selectedText,
                 ]}
               >
-                Floor 9
+                All Floors
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.optionButton,
-                selectedFloor === "17" && styles.selectedButton,
-              ]}
-              onPress={() => handleFloorSelect("17")}
-            >
-              <Text
+            <View style={styles.optionBottomContainer}>
+              <TouchableOpacity
                 style={[
-                  styles.optionText,
-                  selectedFloor === "17" && styles.selectedText,
+                  styles.optionButton,
+                  selectedFloor === "9" && styles.selectedButton,
                 ]}
+                onPress={() => handleFloorSelect("9")}
               >
-                Floor 17
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedFloor === "9" && styles.selectedText,
+                  ]}
+                >
+                  Floor 9
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.optionButton,
+                  selectedFloor === "17" && styles.selectedButton,
+                ]}
+                onPress={() => handleFloorSelect("17")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedFloor === "17" && styles.selectedText,
+                  ]}
+                >
+                  Floor 17
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.buttonContainer}>
             <Button title="Cancel" color="red" onPress={onClose} />
@@ -155,6 +175,18 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     flexDirection: "row",
   },
+  optionBottomContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+    flexDirection: "row",
+  },
+  optionTopContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+    flexDirection: "column",
+  },
   buttonContainer: {
     flexDirection: "row",
     marginTop: 10,
@@ -178,11 +210,23 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     backgroundColor: "#ddd",
     borderRadius: 5,
+    height: 40,
     width: 80,
+    alignItems: "center",
+  },
+  optionAllButton: {
+    padding: 10,
+    marginVertical: 5,
+    marginHorizontal: 5,
+    backgroundColor: "#ddd",
+    borderRadius: 5,
+    height: 40,
+    width: 165,
     alignItems: "center",
   },
   optionText: {
     fontSize: 16,
+    textAlign: "center",
   },
 
   title: {
