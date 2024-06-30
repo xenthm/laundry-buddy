@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
 import LevelMachines from "@/components/LevelMachines";
+import { router } from 'expo-router';
+import axios from "axios";
 import {
+  Alert,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -16,28 +19,189 @@ import IDModal from "@/components/IDModal";
 const bg = require("@/assets/images/water.png");
 
 export default function Status() {
-  const [placeholder] = useState(
-    "Your are not watching any machines now. Select the '+' button to watch a machine."
-  );
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState<any>([]);
   const [state, setState] = React.useState({ open: false });
+  const animationRef = useRef<number | null>(null);
   const onStateChange = ({ open }) => setState({ open });
   const { open } = state;
   const [isTypeModalOpen, setTypeModalOpen] = useState(false);
+  const [isIDModalOpen, setIDModalOpen] = useState(false);
+
+  const [testAvail, setTestAvail] = useState(true);   // TODO: refresh status page and get machine info overview at a set interval (auto refresh), or when user refreshes page
+
   const toggleTypeModalVisibility = () => {
     setTypeModalOpen(!isTypeModalOpen);
   };
 
-  const [isIDModalOpen, setIDModalOpen] = useState(false);
   const toggleIDModalVisibility = () => {
     setIDModalOpen(!isIDModalOpen);
-    console.log(entries.length);
+    console.log(`entries length: ${entries.length}`);
+  };
+  
+  // remove this once test machine is removed
+  const makeNewEntry = async (newMachineID: any) => {
+    try {
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/machine`,
+        {
+          headers: {
+            'machineId': newMachineID,
+          }
+        }
+      );
+
+      const endTime = new Date(response.data.endTime);
+      let status;
+      if (response.data.state === 'on') {
+        if (endTime.getTime() > Date.now()) {
+          status = 'In use';
+        } else {
+          status = 'Complete';
+        }
+      } else {
+        status = 'Not in use';
+      }
+
+      return {
+        id: response.data.machineId,
+        alpha_id: '',  // not from response
+        floor: 'test',       // not from response
+        type: response.data.machineType,
+        status: status,
+        duration: response.data.duration, 
+        endTime: endTime,
+      };
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        Alert.alert("Failed to get machine state", `${error.response.data.msg}`);
+      } else {
+        Alert.alert(
+          "Failed to get machine state",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
+    }
   };
 
-  const deleteEntry = (id) => {
-    setEntries((entries) => {
-      return entries.filter(item => item.id !== id);
-    });
+  // remove this once test machine is removed
+  const addEntry = async () => {
+    const newMachineID = "test";
+    try {
+      setEntries([
+        ...entries,
+        await makeNewEntry(newMachineID),
+      ]);
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
+        {},
+        {
+          headers: {
+            'machineId': newMachineID,
+          }
+        }
+      );
+    } catch (error) {
+      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+        Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
+      } else {
+        Alert.alert(
+          "Failed to watch machine",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
+    }
+  };
+
+  const updateEntries = useCallback(() => {
+    setEntries((prevEntries: any) =>
+      prevEntries.map((item: any) => {
+        const remainingTime = new Date(item.endTime.getTime() - Date.now());
+        if (item.status === 'Not in use') {
+          setTestAvail(true);
+          return item;
+        }
+        if (remainingTime.getTime() <= 999) {
+          setTestAvail(true);
+          return { ...item, status: 'Complete' };
+        }
+        setTestAvail(false);
+        return { ...item, status: `${remainingTime.getMinutes() < 10 ? '0' : ''}${remainingTime.getMinutes()}:${remainingTime.getSeconds() < 10 ? '0' : ''}${remainingTime.getSeconds()} left` };
+      })
+    );
+  }, []);
+
+  const tick = useCallback(() => {
+    updateEntries();
+    animationRef.current = requestAnimationFrame(tick);
+  }, [updateEntries]);
+
+  useEffect(() => {
+    if (!animationRef.current && entries.length > 0) {
+      animationRef.current = requestAnimationFrame(tick);
+    } else if (entries.length === 0) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [entries, tick]);
+
+  const deleteEntry = async (id) => {
+    const machineID = "test"; // hard-coded machineID
+
+    try {
+      setEntries((entries: any) => {
+        return entries.filter((item: any) => item.id !== id);
+      });
+
+      const response = await axios.delete(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
+        {
+          data: {
+            'all': false,
+          },
+          headers: {
+            'machineId': machineID,
+          },
+        }
+      );
+    } catch (error) {
+      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+        Alert.alert("Failed to set machine state", `${error.response.data.msg}`);
+      } else {
+        Alert.alert(
+          "Failed to set machine state",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/logout`
+      );
+      Alert.alert('Log out', response.data.msg);
+      router.back();
+    } catch (error) {
+      if (error.response && error.response.status >= 400 && error.response.status < 500) {
+        Alert.alert("Failed to set machine state", `${error.response.data.msg}`);
+      } else {
+        Alert.alert(
+          "Failed to set machine state",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
+    }
   };
   return (
     <EntriesContext.Provider value={{ entries, setEntries }}>
@@ -52,12 +216,12 @@ export default function Status() {
               <IconButton
                 icon="account-circle"
                 size={50}
-                onPress={() => console.log("Pressed")}
+                onPress={() => handleLogout()}
               />
               <IconButton
                 icon="cog"
                 size={50}
-                onPress={() => console.log("Pressed")}
+                onPress={() => console.log("Settings pressed")}
               />
             </View>
             <View style={styles.dashboard}>
@@ -85,13 +249,22 @@ export default function Status() {
                 >
                   {" "}
                 </LevelMachines>
+                <LevelMachines
+                  level={'test'}
+                  freeWashers={testAvail ? 1 : 0}
+                  totalWasher={1}
+                  freeDryers={0}
+                  totalDryers={0}
+                >
+                  {" "}
+                </LevelMachines>
               </View>
               <View style={styles.titleView}>
                 <Text style={styles.titleText}>Now Watching</Text>
               </View>
               <View style={styles.watchingView}>
                 {!entries.length ? (
-                  <Text style={styles.watchText}>{placeholder}</Text>
+                  <Text style={styles.watchText}>{"You are not watching any machines now. Select the '+' button to watch a machine."}</Text>
                 ) : (
                   <FlatList
                     contentContainerStyle={styles.list}
@@ -102,17 +275,18 @@ export default function Status() {
                         <View style={styles.entryView}>
                           {/* If item.type == A, needs to be handled by backend to determine
                           which level has the fastest machine time */}
-                          <Text style={styles.entry}>Level {item.floor}</Text>
+                          <Text style={styles.entry}>{(item.id && item.id === 'test') ? '' : 'Level'} {item.floor}</Text>
                           <Text style={styles.entry}>
                             {" "}
-                            { item.type == "W" ? "Washer": "Dryer"} {item.alpha_id}
+                            {item.type == "W" ? "Washer" : (item.type == "D" ? "Dryer" : "")} {item.alpha_id}
                           </Text>
-                          <Text style={styles.entry}> {item.time}</Text>
+                          <Text style={styles.entry}> {item.status}</Text>
                         </View>
                         <IconButton
                           icon="trash-can-outline"
                           size={30}
                           onPress={() => deleteEntry(item.id)}
+                        // to link
                         />
                       </View>
                     )}
@@ -145,6 +319,13 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => toggleTypeModalVisibility(),
                   },
+                  {
+                    icon: "code-braces",
+                    label: "Watch test machine",
+                    color: "black",
+                    style: { backgroundColor: "lightblue" },
+                    onPress: () => addEntry(),
+                  },
                 ]}
                 onStateChange={onStateChange}
               />
@@ -160,7 +341,7 @@ export default function Status() {
           ></IDModal>
         </ImageBackground>
       </SafeAreaView>
-    </EntriesContext.Provider>
+    </EntriesContext.Provider >
   );
 }
 

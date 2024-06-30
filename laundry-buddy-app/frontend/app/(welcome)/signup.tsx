@@ -60,15 +60,21 @@ export default function SignUp() {
           password,
         }
       );
-
       const { token } = response.data;
 
       await SecureStore.setItemAsync("token", token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${SecureStore.getItem("token")}`;
       // for now, show the token when sign up successful
-      Alert.alert(
+      console.log(
         "Sign Up Successful",
-        `Token saved successfully!\n\n${token}`
+        `Token saved successfully!\n${token}`
       );
+      setEmail('');
+      setUsername('');
+      setPassword('');
+      setCfmPassword('');
+      setShowPassword(false);
+      router.navigate("(main)/status");
     } catch (error) {
       // can use this to see what the response was from the API
       if (error.response && error.response.status === 400) {

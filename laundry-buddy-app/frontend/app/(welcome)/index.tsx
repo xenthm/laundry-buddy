@@ -38,16 +38,19 @@ export default function Login() {
           password,
         }
       );
-
       const { token } = response.data;
 
       await SecureStore.setItemAsync("token", token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${SecureStore.getItem("token")}`;
       // for now, show the token when login successful
-      Alert.alert("Login Successful", `Token saved successfully!\n\n${token}`);
+      console.log("Login Successful", `Token saved successfully!\n\n${token}`);
+      setUsername('');
+      setPassword('');
+      setShowPassword(false);
       router.navigate("(main)/status");
     } catch (error) {
       // can use this to see what the response was from the API
-      if (error.response && error.response.status === 400) {
+      if (error.response && (error.response.status === 400 || error.response.status === 401)) {
         Alert.alert("Login Failed", `${error.response.data.msg}`);
       } else {
         Alert.alert(

@@ -6,7 +6,7 @@
 
 #define MACHINE_ID "test"
 #define MACHINE_TYPE "washer"
-#define CYCLE_DUR 1000 * 10 // in ms
+#define CYCLE_DUR 1000 * 30 // in ms
 
 #define LDR_PIN 2
 #define START_BUTTON 9
@@ -59,7 +59,7 @@ void sendRequest(const bool state) {
     // Serial.println(WiFi.localIP());
 
     HTTPClient http;
-    setHTTPClient(http, "/api/machine/set-state");
+    setHTTPClient(http, "/api/machine");
 
     int httpResponseCode = http.POST(JSON.stringify(req));
     handleResponse(http.getString(), httpResponseCode);
