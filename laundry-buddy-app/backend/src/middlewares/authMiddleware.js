@@ -6,19 +6,19 @@ const { BlacklistedToken } = require('../models/Token');
 dotenv.config();
 
 const auth = async (req, res, next) => {
-  const token = req.header('Authorization').replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
-  }
-
-  const blacklistedToken = await BlacklistedToken.findOne({ token });
-
-  if (blacklistedToken) {
-    return res.status(403).json({ msg: 'Blacklisted token used, authorization denied' });
-  }
-
   try {
+    const token = req.header('Authorization').replace('Bearer ', '');
+  
+    if (!token) {
+      return res.status(401).json({ msg: 'No token, authorization denied' });
+    }
+  
+    const blacklistedToken = await BlacklistedToken.findOne({ token });
+  
+    if (blacklistedToken) {
+      return res.status(403).json({ msg: 'Blacklisted token used, authorization denied' });
+    }
+    
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
     req.user = await User.findById(decoded.user.id).select('-password');

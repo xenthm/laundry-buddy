@@ -7,7 +7,7 @@ exports.findMachine = async (req, res, next) => {
     req.machine = await Machine.findOne({ machineId });
 
     if (!req.machine) {
-      return res.status(404).json({ msg: 'Machine not found' });
+      return res.status(404).json({ msg: `Machine '${machineId}' not found` });
     }
 
     next();

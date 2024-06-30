@@ -57,8 +57,6 @@ exports.register = async (req, res, next) => {
 
 // Authenticate user and get token
 exports.login = async (req, res, next) => {
-  const { username } = req.body;
-
   try {
     const token = await tokenise(req.user.id);
     return res.json({ token });

@@ -104,9 +104,9 @@ describe("Get User Test", () => {
     const res = await request(server).get("/api/user/profile").set("Authorization", token);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty("_id");
-    expect(res.body.username).toBe(TEST_USERNAME_AND_PASSWORD);
-    expect(res.body.email).toBe(TEST_EMAIL);
+    expect(res.body).toHaveProperty("user");
+    expect(res.body.user.username).toBe(TEST_USERNAME_AND_PASSWORD);
+    expect(res.body.user.email).toBe(TEST_EMAIL);
   });
 
   test("should return 401 if no token provided", async () => {
