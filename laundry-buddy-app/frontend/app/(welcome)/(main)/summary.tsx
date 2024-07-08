@@ -15,8 +15,10 @@ import axios from "axios";
 
 const bg = require("@/assets/images/water.png");
 
+// TODO: Display the current day 
 // TODO: Change "NOW" label to reflect current time's crowd by default
 // TODO: When a bar is selected, replace NOW with new time and its crowd analysis
+// TODO: Create a dummy backend that stores the week's
 
 export default function Status() {
   const footfallData = [
@@ -99,27 +101,32 @@ export default function Status() {
             <Text style={styles.footfallText}> A little busy </Text>
           </View>
         </View>
-        <ScrollView contentContainerStyle={styles.graph}>
-          <View style={styles.chartContainer}>
-            <BarChart
-              data={footfallData}
-              horizontal
-              hideRules
-              spacing={10}
-              labelsDistanceFromXaxis={10}
-              xAxisThickness={0}
-            />
-          </View>
-        </ScrollView>
+        <View style={styles.scrollView}>
+          <ScrollView
+            nestedScrollEnabled={true}
+            scrollEnabled={true}
+          >
+            <View style={styles.chartContainer}>
+              <BarChart
+                data={footfallData}
+                horizontal
+                hideRules
+                spacing={10}
+                labelsDistanceFromXaxis={10}
+                xAxisThickness={0}
+                hideYAxisText
+                hideAxesAndRules
+              />
+            </View>
+          </ScrollView>
+        </View>
       </ImageBackground>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: "flex-start",
-  },
+  container: {},
   crowdNowContainer: {
     alignSelf: "flex-start",
     borderColor: "white",
@@ -138,15 +145,18 @@ const styles = StyleSheet.create({
     width: "70%",
     alignItems: "center",
   },
-  graph: {
-    width: "90%",
-    height: 500,
+  scrollView: {
+    flexGrow: 1,
+    height: 50,
+    width: "80%",
+    alignItems: "center",
     alignContent: "center",
+    alignSelf: "center",
+    paddingTop: 20,
   },
   chartContainer: {
-    width: "90%",
-    alignContent: "center",
-    alignItems: "center",
+    width: "100%",
+    paddingBottom: 750,
   },
   titleText: {
     fontSize: 24,
@@ -172,5 +182,9 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 5,
     color: "black",
+  },
+  dayText: {
+    fontSize: 16,
+    alignItems: "flex-start",
   },
 });
