@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BarChart } from "react-native-gifted-charts";
 import {
   ImageBackground,
@@ -12,15 +12,20 @@ import {
 import { IconButton } from "react-native-paper";
 import { router } from "expo-router";
 import axios from "axios";
+import { Item } from "react-native-paper/lib/typescript/components/Drawer/Drawer";
 
 const bg = require("@/assets/images/water.png");
+const curr_hour_index = new Date().getHours();
+const day = new Date().getDay();
 
-// TODO: Display the current day 
-// TODO: Change "NOW" label to reflect current time's crowd by default
-// TODO: When a bar is selected, replace NOW with new time and its crowd analysis
-// TODO: Create a dummy backend that stores the week's
+// TODO: Automatically highlight the current time and change to highlight the selected time
+// TODO: Display the current day at the top of the page
+// TODO: Create a dummy backend that stores the week's data
 
 export default function Status() {
+  const [time, setTime] = useState("Live");
+  const [crowd, setCrowd] = useState("");
+  const [barPressed, setPressed] = useState(false);
   const footfallData = [
     { value: 11, label: "12am" },
     { value: 5, label: "1am" },
@@ -47,6 +52,20 @@ export default function Status() {
     { value: 19, label: "10pm" },
     { value: 15, label: "11pm" },
   ];
+
+  useEffect(() => {
+    setTime(footfallData[curr_hour_index].label);
+    if (footfallData[curr_hour_index].value >= 20) {
+      setCrowd("Very Busy");
+    } else if (footfallData[curr_hour_index].value >= 15) {
+      setCrowd("Busy");
+    } else if (footfallData[curr_hour_index].value >= 10) {
+      setCrowd("A bit busy");
+    } else {
+      setCrowd("Not busy");
+    }
+    console.log(curr_hour_index);
+  }, [curr_hour_index]);
 
   const handleLogout = async () => {
     try {
@@ -75,6 +94,19 @@ export default function Status() {
     }
   };
 
+  const updateAnalyticsTab = (index) => {
+    setTime(index.label);
+    if (index.value >= 20) {
+      setCrowd("Very Busy");
+    } else if (index.value >= 15) {
+      setCrowd("Busy");
+    } else if (index.value >= 10) {
+      setCrowd("A bit busy");
+    } else {
+      setCrowd("Not busy");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -97,15 +129,12 @@ export default function Status() {
         <View style={styles.titleView}>
           <Text style={styles.titleText}>Crowd Statistics</Text>
           <View style={styles.crowdNowContainer}>
-            <Text style={styles.nowText}>Now</Text>
-            <Text style={styles.footfallText}> A little busy </Text>
+            <Text style={styles.nowText}>{time}</Text>
+            <Text style={styles.footfallText}>{crowd}</Text>
           </View>
         </View>
         <View style={styles.scrollView}>
-          <ScrollView
-            nestedScrollEnabled={true}
-            scrollEnabled={true}
-          >
+          <ScrollView nestedScrollEnabled={true} scrollEnabled={true}>
             <View style={styles.chartContainer}>
               <BarChart
                 data={footfallData}
@@ -116,6 +145,22 @@ export default function Status() {
                 xAxisThickness={0}
                 hideYAxisText
                 hideAxesAndRules
+                scrollToIndex={curr_hour_index}
+                focusBarOnPress={true}
+                focusedBarConfig={focusedBarConfig}
+                focusedBarIndex={barPressed ? undefined: curr_hour_index}
+                renderTooltip={(item) => {
+                  return (
+                    <View style={styles.toolTipView}>
+                      <Text style={styles.toolTip}>{item.value}</Text>
+                    </View>
+                  );
+                }}
+                onPress={(index) => {
+                  setPressed(true);
+                  console.log(barPressed);
+                  updateAnalyticsTab(index);
+                }}
               />
             </View>
           </ScrollView>
@@ -124,6 +169,9 @@ export default function Status() {
     </SafeAreaView>
   );
 }
+const focusedBarConfig = {
+  color: "blue",
+};
 
 const styles = StyleSheet.create({
   container: {},
@@ -147,16 +195,16 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flexGrow: 1,
-    height: 50,
+    height: 60,
     width: "80%",
     alignItems: "center",
     alignContent: "center",
     alignSelf: "center",
-    paddingTop: 20,
+    paddingTop: 10,
   },
   chartContainer: {
     width: "100%",
-    paddingBottom: 750,
+    paddingBottom: 800,
   },
   titleText: {
     fontSize: 24,
@@ -171,20 +219,35 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   nowText: {
+    width: 52,
     fontSize: 16,
     padding: 5,
     backgroundColor: "blue",
     borderRadius: 5,
     color: "white",
+    textAlign: "center",
   },
   footfallText: {
     fontSize: 16,
-    padding: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
     borderRadius: 5,
     color: "black",
+    textAlign: "center",
   },
   dayText: {
     fontSize: 16,
     alignItems: "flex-start",
   },
+  toolTipView: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: "center",
+    transform: [{ rotate: "270deg"}],
+    width: 30,
+    height: 30,
+  },
+  toolTip: {
+    justifyContent: "center",
+  }
 });
