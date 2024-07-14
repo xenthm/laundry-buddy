@@ -12,11 +12,12 @@ import {
 import { IconButton } from "react-native-paper";
 import { router } from "expo-router";
 import axios from "axios";
+import moment from 'moment'
 import { Item } from "react-native-paper/lib/typescript/components/Drawer/Drawer";
 
 const bg = require("@/assets/images/water.png");
 const curr_hour_index = new Date().getHours();
-const day = new Date().getDay();
+const day = moment().format('dddd');;
 
 // TODO: Automatically highlight the current time and change to highlight the selected time
 // TODO: Display the current day at the top of the page
@@ -128,6 +129,7 @@ export default function Status() {
         </View>
         <View style={styles.titleView}>
           <Text style={styles.titleText}>Crowd Statistics</Text>
+          <Text style={styles.dayText}>Last week on {day}</Text>
           <View style={styles.crowdNowContainer}>
             <Text style={styles.nowText}>{time}</Text>
             <Text style={styles.footfallText}>{crowd}</Text>
@@ -210,7 +212,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "darkblue",
-    paddingBottom: 10,
+    paddingBottom: 5,
   },
   optionsView: {
     paddingTop: 50,
@@ -235,10 +237,6 @@ const styles = StyleSheet.create({
     color: "black",
     textAlign: "center",
   },
-  dayText: {
-    fontSize: 16,
-    alignItems: "flex-start",
-  },
   toolTipView: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -249,5 +247,10 @@ const styles = StyleSheet.create({
   },
   toolTip: {
     justifyContent: "center",
-  }
+  },
+  dayText: {
+    fontSize: 18,
+    color: "darkblue",
+    paddingBottom: 10,
+  },
 });
