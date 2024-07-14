@@ -48,7 +48,11 @@ export default function status() {
           tabBarStyle: { height: 55 },
           tabBarLabel: "Home",
           tabBarIcon: ({ color = "darkblue" }) => (
-            <AntDesign name="linechart" color={color} size={35} />
+            <MaterialIcons
+              name="local-laundry-service"
+              color={color}
+              size={35}
+            />
           ),
         }}
       />
@@ -59,11 +63,7 @@ export default function status() {
           tabBarStyle: { height: 55 },
           tabBarLabel: "Statistics",
           tabBarIcon: ({ color = "darkblue" }) => (
-            <MaterialIcons
-              name="local-laundry-service"
-              color={color}
-              size={35}
-            />
+            <AntDesign name="linechart" color={color} size={35} />
           ),
         }}
       />
