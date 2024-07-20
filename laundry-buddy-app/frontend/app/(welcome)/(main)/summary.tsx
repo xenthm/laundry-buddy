@@ -241,7 +241,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: "center",
-    transform: [{ rotate: "270deg"}],
     width: 30,
     height: 30,
   },
