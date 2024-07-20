@@ -1,6 +1,6 @@
 const express = require('express');
 const auth = require('../middlewares/authMiddleware');
-const { findMachine, getMachineDetails } = require('../middlewares/machineMiddleware');
+const { findMachine, getMachineDetails, findEarliestMachine } = require('../middlewares/machineMiddleware');
 const { getUserProfile, updateUserProfile, changePassword, deleteUserAccount, forgotPassword, resetPassword, watchMachine, removeMachine } = require('../controllers/userController');
 const verifyPassword = require('../middlewares/passwordMiddleware');
 
@@ -24,7 +24,10 @@ router.delete('/profile', deleteUserAccount);
 // Route to watch machine
 router.post('/watch-machine', findMachine, watchMachine);
 
-// Route to watch machine
+// Route to watch earliest available machine
+router.post('/watch-earliest-machine', findEarliestMachine, watchMachine);
+
+// Route to stop watching machine
 router.delete('/watch-machine', findMachine, removeMachine);
 
 module.exports = router;
