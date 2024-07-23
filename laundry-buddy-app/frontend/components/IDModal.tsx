@@ -17,10 +17,10 @@ import axios from "axios";
 
 const IDModal = ({ visible, onClose }) => {
   const { entries, setEntries } = useContext<any>(EntriesContext);
-  const [machineID, setMachineID] = useState("test");
-  const [selectedType, setSelectedType] = useState("Washer");
-  const [selectedFloor, setSelectedFloor] = useState("9");
-  const [selectedAlphaID, setSelectedAlphaID] = useState("");
+  const [machineID, setMachineId] = useState("test");
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedFloor, setSelectedFloor] = useState("test");
+  const [selectedAlphaId, setSelectedAlphaId] = useState("");
   const [isFocus, setIsFocus] = useState(false);
 
   const handleTypeSelect = (option) => {
@@ -32,7 +32,7 @@ const IDModal = ({ visible, onClose }) => {
   };
 
   const renderLabel = () => {
-    if (selectedAlphaID || isFocus) {
+    if (selectedAlphaId || isFocus) {
       return (
         <Text style={[styles.label, isFocus && { color: "darkblue" }]}>
           Machine ID
@@ -42,13 +42,13 @@ const IDModal = ({ visible, onClose }) => {
     return null;
   };
 
-  const makeNewEntry = async (newMachineID: any) => {
+  const makeNewEntry = async (newMachineId: any) => {
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/machine`,
         {
           headers: {
-            'machineId': newMachineID,
+            'machineId': newMachineId,
           }
         }
       );
@@ -65,12 +65,12 @@ const IDModal = ({ visible, onClose }) => {
       }
 
       return {
-        id: response.data.machineId,
-        alpha_id: selectedAlphaID,  // not from response
+        id: newMachineId,
+        alpha_id: selectedAlphaId,  // not from response
         floor: selectedFloor,       // not from response
         type: response.data.machineType,
         status: status,
-        duration: response.data.duration, 
+        duration: response.data.duration,
         endTime: endTime,
       };
     } catch (error) {
@@ -87,26 +87,38 @@ const IDModal = ({ visible, onClose }) => {
   };
 
   const addEntry = async () => {
-    const newMachineID = selectedFloor + selectedType + selectedAlphaID;
-    // const newMachineID = "test";
-    setMachineID(newMachineID);
-    console.log(`new machine ID: ${newMachineID}`);
+    let newMachineId;
+    if (selectedFloor === 'test') {
+      newMachineId = "test";
+    } else {
+      newMachineId = (selectedFloor.length === 1 ? ('0' + selectedFloor) : selectedFloor) + selectedType + selectedAlphaId;
+    }
+    setMachineId(newMachineId);
+    console.log(`new machine ID: ${newMachineId}`);
 
     try {
-      setEntries([
-        ...entries,
-        await makeNewEntry(newMachineID),
-      ]);
-      
+      if (entries.find((item) => { return item.id === newMachineId })) {
+        Alert.alert(
+          "Failed to watch machine",
+          `Already watching machine ${newMachineId}`
+        );
+        return;
+      } else {
+        setEntries([
+          ...entries,
+          await makeNewEntry(newMachineId),
+        ]);
+      }
+
       console.log("Floor: " + selectedFloor + " Type: " + selectedType);
       console.log("Entries now..." + entries.length);
 
-      const response = await axios.post(
+      await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
         {},
         {
           headers: {
-            'machineId': newMachineID,
+            'machineId': newMachineId,
           }
         }
       );
@@ -231,11 +243,11 @@ const IDModal = ({ visible, onClose }) => {
               valueField="value"
               placeholder={!isFocus ? "Select ID" : "..."}
               searchPlaceholder="Search..."
-              value={selectedAlphaID}
+              value={selectedAlphaId}
               onFocus={() => setIsFocus(true)}
               onBlur={() => setIsFocus(false)}
               onChange={(item) => {
-                setSelectedAlphaID(item.value);
+                setSelectedAlphaId(item.value);
                 setIsFocus(false);
               }}
             />

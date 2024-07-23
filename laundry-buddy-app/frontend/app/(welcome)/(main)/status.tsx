@@ -25,7 +25,7 @@ export default function Status() {
   const onStateChange = ({ open }) => setState({ open });
   const { open } = state;
   const [isTypeModalOpen, setTypeModalOpen] = useState(false);
-  const [isIDModalOpen, setIDModalOpen] = useState(false);
+  const [isIdModalOpen, setIModalOpen] = useState(false);
 
   const [testAvail, setTestAvail] = useState(true);   // TODO: refresh status page and get machine info overview at a set interval (auto refresh), or when user refreshes page
 
@@ -34,18 +34,19 @@ export default function Status() {
   };
 
   const toggleIDModalVisibility = () => {
-    setIDModalOpen(!isIDModalOpen);
+    setIModalOpen(!isIdModalOpen);
     console.log(`entries length: ${entries.length}`);
   };
-  
+
+  /* 
   // remove this once test machine is removed
-  const makeNewEntry = async (newMachineID: any) => {
+  const makeNewEntry = async (newMachineId: any) => {
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/machine`,
         {
           headers: {
-            'machineId': newMachineID,
+            'machineId': newMachineId,
           }
         }
       );
@@ -63,12 +64,12 @@ export default function Status() {
       }
 
       return {
-        id: response.data.machineId,
+        id: newMachineId,
         alpha_id: '',  // not from response
         floor: 'test',       // not from response
         type: response.data.machineType,
         status: status,
-        duration: response.data.duration, 
+        duration: response.data.duration,
         endTime: endTime,
       };
     } catch (error) {
@@ -113,23 +114,28 @@ export default function Status() {
       }
     }
   };
+  */
 
   const updateEntries = useCallback(() => {
-    setEntries((prevEntries: any) =>
-      prevEntries.map((item: any) => {
-        const remainingTime = new Date(item.endTime.getTime() - Date.now());
-        if (item.status === 'Not in use') {
-          setTestAvail(true);
-          return item;
-        }
-        if (remainingTime.getTime() <= 999) {
-          setTestAvail(true);
-          return { ...item, status: 'Complete' };
-        }
-        setTestAvail(false);
-        return { ...item, status: `${remainingTime.getMinutes() < 10 ? '0' : ''}${remainingTime.getMinutes()}:${remainingTime.getSeconds() < 10 ? '0' : ''}${remainingTime.getSeconds()} left` };
-      })
-    );
+    try {
+      setEntries((prevEntries: any) =>
+        prevEntries.map((item: any) => {
+          if (item.status === 'Not in use') {
+            setTestAvail(true);
+            return item;
+          }
+          const remainingTime = new Date(item.endTime.getTime() - Date.now());
+          if (remainingTime.getTime() <= 999) {
+            setTestAvail(true);
+            return { ...item, status: 'Complete' };
+          }
+          setTestAvail(false);
+          return { ...item, status: `${remainingTime.getMinutes() < 10 ? '0' : ''}${remainingTime.getMinutes()}:${remainingTime.getSeconds() < 10 ? '0' : ''}${remainingTime.getSeconds()} left` };
+        })
+      );
+    } catch (err) {
+      console.error(err);
+    }
   }, []);
 
   const tick = useCallback(() => {
@@ -153,7 +159,8 @@ export default function Status() {
   }, [entries, tick]);
 
   const deleteEntry = async (id) => {
-    const machineID = "test"; // hard-coded machineID
+    // const machineID = "test"; // hard-coded machineID
+    const machineID = id;
 
     try {
       setEntries((entries: any) => {
@@ -319,6 +326,7 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => toggleTypeModalVisibility(),
                   },
+                  /*
                   {
                     icon: "code-braces",
                     label: "Watch test machine",
@@ -326,6 +334,7 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => addEntry(),
                   },
+                  */
                 ]}
                 onStateChange={onStateChange}
               />
@@ -336,8 +345,8 @@ export default function Status() {
             onClose={() => setTypeModalOpen(false)}
           ></TypeModal>
           <IDModal
-            visible={isIDModalOpen}
-            onClose={() => setIDModalOpen(false)}
+            visible={isIdModalOpen}
+            onClose={() => setIModalOpen(false)}
           ></IDModal>
         </ImageBackground>
       </SafeAreaView>

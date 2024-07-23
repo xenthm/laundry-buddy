@@ -43,7 +43,7 @@ export default function Login() {
       await SecureStore.setItemAsync("token", token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${SecureStore.getItem("token")}`;
       // for now, show the token when login successful
-      console.log("Login Successful", `Token saved successfully!\n\n${token}`);
+      console.log("Login Successful", `Token saved successfully!`);
       setUsername('');
       setPassword('');
       setShowPassword(false);
