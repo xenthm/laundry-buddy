@@ -11,6 +11,10 @@ const MachineSchema = new mongoose.Schema({
     enum: ['washer', 'dryer'],
     required: true,
   },
+  floor: {
+    type: Number, 
+    required: true, 
+  }, 
   state: {
     type: String,
     enum: ['on', 'off'],

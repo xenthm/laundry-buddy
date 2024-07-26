@@ -11,7 +11,7 @@ exports.getMachine = async (req, res, next) => {
 
 // Controller to handle machine state requests
 exports.setMachineState = async (req, res, next) => {
-  const { machineId, machineType, state, duration } = req.body;
+  const { machineId, machineType, floor, state, duration } = req.body;
 
   if (!machineId) {
     return res.status(400).json({ msg: "machineId is required" });
@@ -19,6 +19,11 @@ exports.setMachineState = async (req, res, next) => {
 
   if (!["washer", "dryer"].includes(machineType)) {
     return res.status(400).json({ msg: "Invalid machineType, must be 'washer' or 'dryer'" });
+  }
+
+  if (floor === 0) {
+    // -1 corresponds to B1, -2 to B2, etc.
+    return res.status(400).json({ msg: "Invalid floor, must be non-zero" });
   }
 
   if (!duration) {
@@ -40,10 +45,10 @@ exports.setMachineState = async (req, res, next) => {
     let responseSuffix = ` and ends in ${duration / 1000}s (${endTime})`;
 
     if (!machine) {
-      machine = new Machine({ machineId, machineType, state, duration, endTime });
+      machine = new Machine({ machineId, machineType, floor, state, duration, endTime });
       await machine.save();
 
-      response = { msg: `Machine not found. ${machineType} '${machineId}' created and set to ${state}` + (state === "on" ? responseSuffix : "") };
+      response = { msg: `Machine not found. ${machineType} '${machineId}' on floor '${floor}' created and set to ${state}` + (state === "on" ? responseSuffix : "") };
       console.log(response.msg);
       return res.status(201).json(response);
     }
@@ -53,7 +58,7 @@ exports.setMachineState = async (req, res, next) => {
     machine.endTime = endTime;
     await machine.save();
 
-    response = { msg: `${machineType} '${machineId}' set to ${state}` + (state === "on" ? responseSuffix : "") };
+    response = { msg: `${machineType} '${machineId}' on floor '${floor}' set to ${state}` + (state === "on" ? responseSuffix : "") };
     console.log(response.msg);
     res.json(response);
   } catch (err) {

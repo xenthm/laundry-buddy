@@ -6,7 +6,6 @@ import axios from "axios";
 console.log(`Using API URL: '${process.env.EXPO_PUBLIC_API_URL}'`);
 
 axios.defaults.headers.common['Authorization'] = `Bearer ${SecureStore.getItem("token")}`;
-console.log(axios.defaults.headers.common['Authorization']);
 
 export default function WelcomeLayout() {
   useEffect(() => {

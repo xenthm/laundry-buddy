@@ -1,6 +1,7 @@
 import { EntriesContext } from "@/contexts/EntriesContext";
 import { useContext, useState, useEffect } from "react";
 import {
+  Alert,
   Modal,
   TouchableOpacity,
   View,
@@ -9,24 +10,27 @@ import {
   StyleSheet,
 } from "react-native";
 import React from "react";
+import axios from "axios";
 
 // This modal searches for the fastest completed machine with the chosen requirements
 // These requirements are either by floor (or any floor) or by machine type
 
 const TypeModal = ({ visible, onClose }) => {
   //const { isTypeModalOpen, setTypeModalOpen } = useContext(TypeStateContext);
-  const { entries, setEntries } = useContext(EntriesContext);
+  const { entries, setEntries } = useContext<any>(EntriesContext);
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedFloor, setSelectedFloor] = useState<any>(0);
+  const [responseAlphaId, setResponseAlphaId] = useState("");
 
-  const [selectedType, setSelectedType] = useState("Washer");
-  const [selectedFloor, setSelectedFloor] = useState("9");
-
-  // TODO: (for backend) return the correct alpha ID for fastest
-  // completed machine
-  const [selectedAlphaID, setSelectedAlphaID] = useState("A");
-  // current timer is dummy timer
-  const [timer, setTimer] = useState("30:00");
 
   const handleTypeSelect = (option) => {
+    if (option === 'W') {
+      option = 'washer';
+    } else if (option === 'D') {
+      option = 'dryer';
+    } else {
+      return;
+    }
     setSelectedType(option);
   };
 
@@ -34,20 +38,85 @@ const TypeModal = ({ visible, onClose }) => {
     setSelectedFloor(option);
   };
 
-  const addEntry = () => {
-    // setNewEntry(selectedFloor + " " + selectedType);
-    setEntries([
-      ...entries,
-      {
-        id: selectedFloor + selectedType + selectedAlphaID,
-        alpha_id: selectedAlphaID,
-        floor: selectedFloor,
-        type: selectedType,
-        time: timer,
-      },
-    ]);
-    console.log("Entries now..." + entries.length);
-    onClose();
+  const makeNewEntry = async (machine) => {
+    const endTime = new Date(machine.endTime);
+    let status;
+    if (machine.state === 'on') {
+      if (endTime.getTime() > Date.now()) {
+        status = 'In use';
+      } else {
+        status = 'Complete';
+      }
+    } else {
+      status = 'Not in use';
+    }
+
+    const newMachineId = machine.machineId;
+    const newAlphaId = newMachineId.slice(-1); // in the machine naming convention, the last character is the unique identifier for its floor
+    console.log(`machine alpha id is: ${newAlphaId}`);
+    setResponseAlphaId(newAlphaId);
+
+    return {
+      id: newMachineId,
+      alpha_id: newAlphaId,
+      floor: machine.floor,
+      type: selectedType,
+      status: status,
+      duration: machine.duration,
+      endTime: endTime,
+    };
+  };
+
+  const addEntry = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/machine/earliest`,
+        {
+          'earliestMachineType': selectedType,
+          'earliestMachineFloor': selectedFloor,
+        }
+      );
+      const machine = response.data;
+
+      if (entries.find((item) => { return item.id === machine.machineId })) {
+        Alert.alert(
+          "Failed to watch earliest machine",
+          `Already watching machine ${machine.machineId}`
+        );
+        onClose();
+        return;
+      } else {
+        setEntries([
+          ...entries,
+          await makeNewEntry(machine),
+        ]);
+      }
+
+      console.log("Floor: " + selectedFloor + " Type: " + selectedType);
+      console.log("Entries now..." + entries.length);
+
+      // the 2 requests in this file can be combined into one
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
+        {},
+        {
+          headers: {
+            'machineId': machine.machineId,
+          }
+        }
+      );
+      onClose();
+    } catch (error) {
+      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+        Alert.alert("Failed to watch earliest machine", `${error.response.data.msg}`);
+      } else {
+        Alert.alert(
+          "Failed to watch machine",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
+    }
   };
 
   return (
@@ -63,14 +132,14 @@ const TypeModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedType === "W" && styles.selectedButton,
+                selectedType === "washer" && styles.selectedButton,
               ]}
               onPress={() => handleTypeSelect("W")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedType === "W" && styles.selectedText,
+                  selectedType === "washer" && styles.selectedText,
                 ]}
               >
                 Washer
@@ -80,14 +149,14 @@ const TypeModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedType === "D" && styles.selectedButton,
+                selectedType === "dryer" && styles.selectedButton,
               ]}
               onPress={() => handleTypeSelect("D")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedType === "D" && styles.selectedText,
+                  selectedType === "dryer" && styles.selectedText,
                 ]}
               >
                 Dryer
@@ -99,14 +168,14 @@ const TypeModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionAllButton,
-                selectedFloor === "A" && styles.selectedButton,
+                selectedFloor === "all" && styles.selectedButton,
               ]}
-              onPress={() => handleFloorSelect("A")}
+              onPress={() => handleFloorSelect("all")}
             >
               <Text
                 style={[
                   styles.optionText,
-                  selectedFloor === "A" && styles.selectedText,
+                  selectedFloor === "all" && styles.selectedText,
                 ]}
               >
                 All Floors
@@ -116,14 +185,14 @@ const TypeModal = ({ visible, onClose }) => {
               <TouchableOpacity
                 style={[
                   styles.optionButton,
-                  selectedFloor === "9" && styles.selectedButton,
+                  selectedFloor === 9 && styles.selectedButton,
                 ]}
-                onPress={() => handleFloorSelect("9")}
+                onPress={() => handleFloorSelect(9)}
               >
                 <Text
                   style={[
                     styles.optionText,
-                    selectedFloor === "9" && styles.selectedText,
+                    selectedFloor === 9 && styles.selectedText,
                   ]}
                 >
                   Floor 9
@@ -132,14 +201,14 @@ const TypeModal = ({ visible, onClose }) => {
               <TouchableOpacity
                 style={[
                   styles.optionButton,
-                  selectedFloor === "17" && styles.selectedButton,
+                  selectedFloor === 17 && styles.selectedButton,
                 ]}
-                onPress={() => handleFloorSelect("17")}
+                onPress={() => handleFloorSelect(17)}
               >
                 <Text
                   style={[
                     styles.optionText,
-                    selectedFloor === "17" && styles.selectedText,
+                    selectedFloor === 17 && styles.selectedText,
                   ]}
                 >
                   Floor 17

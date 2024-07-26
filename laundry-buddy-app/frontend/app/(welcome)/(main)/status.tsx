@@ -285,7 +285,7 @@ export default function Status() {
                           <Text style={styles.entry}>{(item.id && item.id === 'test') ? '' : 'Level'} {item.floor}</Text>
                           <Text style={styles.entry}>
                             {" "}
-                            {item.type == "W" ? "Washer" : (item.type == "D" ? "Dryer" : "")} {item.alpha_id}
+                            {item.type == "washer" ? "Washer" : (item.type == "dryer" ? "Dryer" : "")} {item.alpha_id}
                           </Text>
                           <Text style={styles.entry}> {item.status}</Text>
                         </View>
