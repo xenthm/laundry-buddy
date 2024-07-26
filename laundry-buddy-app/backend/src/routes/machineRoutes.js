@@ -7,7 +7,7 @@ const { getMachine, setMachineState } = require('../controllers/machineControlle
 router.get('/', findMachine, getMachine);
 
 // Route for getting earliest machine state
-router.get('/earliest', findEarliestMachine, getMachine);
+router.post('/earliest', findEarliestMachine, getMachine);
 
 // Route for setting machine state
 router.post('/', setMachineState);

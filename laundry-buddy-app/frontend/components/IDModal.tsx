@@ -88,8 +88,11 @@ const IDModal = ({ visible, onClose }) => {
 
   const addEntry = async () => {
     let newMachineId;
-    if (selectedFloor === 'test') {
+    if (selectedType === '' || selectedFloor === 'test' || selectedAlphaId === '') {
       newMachineId = "test";
+      setSelectedType('');
+      setSelectedFloor('testy');
+      setSelectedAlphaId('');
     } else {
       newMachineId = (selectedFloor.length === 1 ? ('0' + selectedFloor) : selectedFloor) + selectedType + selectedAlphaId;
     }
@@ -102,6 +105,7 @@ const IDModal = ({ visible, onClose }) => {
           "Failed to watch machine",
           `Already watching machine ${newMachineId}`
         );
+        onClose();
         return;
       } else {
         setEntries([
@@ -113,6 +117,7 @@ const IDModal = ({ visible, onClose }) => {
       console.log("Floor: " + selectedFloor + " Type: " + selectedType);
       console.log("Entries now..." + entries.length);
 
+      // the 2 requests in this file can be combined into one
       await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
         {},
@@ -180,7 +185,7 @@ const IDModal = ({ visible, onClose }) => {
                 styles.optionButton,
                 selectedType === "D" && styles.selectedButton,
               ]}
-              onPress={() => handleTypeSelect("Dryer")}
+              onPress={() => handleTypeSelect("D")}
             >
               <Text
                 style={[
