@@ -93,7 +93,7 @@ const IDModal = ({ visible, onClose }) => {
     } else {
       newMachineId = (selectedFloor.length === 1 ? ('0' + selectedFloor) : selectedFloor) + selectedType + selectedAlphaId;
     }
-    setMachineId(newMachineId);
+    setMachineId(newMachineId); // not used for anything as of now
     console.log(`new machine ID: ${newMachineId}`);
 
     try {
