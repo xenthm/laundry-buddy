@@ -38,7 +38,6 @@ export default function Status() {
     console.log(`entries length: ${entries.length}`);
   };
 
-  /* 
   // remove this once test machine is removed
   const makeNewEntry = async (newMachineId: any) => {
     try {
@@ -114,8 +113,8 @@ export default function Status() {
       }
     }
   };
-  */
 
+  // remove this once test machine is removed
   const updateEntries = useCallback(() => {
     try {
       setEntries((prevEntries: any) =>
@@ -326,7 +325,6 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => toggleTypeModalVisibility(),
                   },
-                  /*
                   {
                     icon: "code-braces",
                     label: "Watch test machine",
@@ -334,7 +332,6 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => addEntry(),
                   },
-                  */
                 ]}
                 onStateChange={onStateChange}
               />
