@@ -20,88 +20,156 @@ const bg = require("@/assets/images/water.png");
 
 export default function Status() {
   const [entries, setEntries] = useState<any>([]);
-  const [state, setState] = React.useState({ open: false });
-  const animationRef = useRef<number | null>(null);
-  const onStateChange = ({ open }) => setState({ open });
-  const { open } = state;
-  const [isTypeModalOpen, setTypeModalOpen] = useState(false);
-  const [isIdModalOpen, setIModalOpen] = useState(false);
+  const [isFABOpen, setIsFABOpen] = useState(false);
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [isIdModalOpen, setIsIdModalOpen] = useState(false);
+  const [machineCount, setMachineCount] = useState({
+    test: {
+      washer: {
+        available: 1,
+        total: 1,
+      },
+      dryer: {
+        available: 0,
+        total: 0,
+      }
+    },
+    9: {
+      washer: {
+        available: 5,
+        total: 5,
+      },
+      dryer: {
+        available: 4,
+        total: 4,
+      }
+    },
+    17: {
+      washer: {
+        available: 5,
+        total: 5,
+      },
+      dryer: {
+        available: 4,
+        total: 4,
+      }
+    }
+  });
+  const intervalRef = useRef<number | null>(null);
 
-  const [testAvail, setTestAvail] = useState(true);   // TODO: refresh status page and get machine info overview at a set interval (auto refresh), or when user refreshes page
-
-  const toggleTypeModalVisibility = () => {
-    setTypeModalOpen(!isTypeModalOpen);
-  };
-
-  const toggleIDModalVisibility = () => {
-    setIModalOpen(!isIdModalOpen);
-    console.log(`entries length: ${entries.length}`);
-  };
-
-  /* 
-  // remove this once test machine is removed
-  const makeNewEntry = async (newMachineId: any) => {
+  const fetchWatchedMachines = async () => {
     try {
       const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/machine`,
-        {
-          headers: {
-            'machineId': newMachineId,
-          }
-        }
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/profile`
       );
-
-      const endTime = new Date(response.data.endTime);
-      let status;
-      if (response.data.state === 'on') {
-        if (endTime.getTime() > Date.now()) {
-          status = 'In use';
-        } else {
-          status = 'Complete';
-        }
-      } else {
-        status = 'Not in use';
+      if (response.data.watchedMachines) {
+        console.log('Successfully restored watched machines');
+        setEntries(response.data.watchedMachines);
       }
-
-      return {
-        id: newMachineId,
-        alpha_id: '',  // not from response
-        floor: 'test',       // not from response
-        type: response.data.machineType,
-        status: status,
-        duration: response.data.duration,
-        endTime: endTime,
-      };
     } catch (error) {
-      if (error.response && error.response.status === 404) {
-        Alert.alert("Failed to get machine state", `${error.response.data.msg}`);
+      if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
+        Alert.alert("Failed to fetch watched machines", `${error.response.data.msg}`);
       } else {
         Alert.alert(
-          "Failed to get machine state",
+          "Failed to fetch watched machines",
           `Please contact the developers with the following information\n\n${error}`
         );
         console.error(error);
       }
     }
+  }
+
+  const fetchMachineCount = async (floor: number, machineType: string) => {
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/machine/count`,
+        { floor, machineType }
+      );
+      return response.data;
+    } catch (error) {
+      if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
+        Alert.alert("Failed to fetch machine count", `${error.response.data.msg}`);
+      } else {
+        Alert.alert(
+          "Failed to fetch machine count",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
+    }
+  }
+
+  const updateDashboard = async () => {
+    for (const floor in machineCount) {
+      if (floor === 'test') {
+        continue;
+      }
+      const floorNum = Number(floor);
+      for (const type of ['washer', 'dryer']) {
+        const { available, total } = await fetchMachineCount(floorNum, type);
+        setMachineCount(prevState => ({
+          ...prevState,
+          [floorNum]: {
+            ...prevState[floorNum],
+            [type]: { available, total },
+          }, 
+        }));
+      }
+    }
+    console.log('Successfully restored machine count');
+  }
+
+  // Get watched machines initially
+  useEffect(() => {
+    fetchWatchedMachines();
+    updateDashboard();
+  }, [])
+
+  // Timer for now watching
+  useEffect(() => {
+    if (entries.length > 0 && intervalRef.current === null) {
+      intervalRef.current = window.setInterval(() => {
+        updateEntries();
+      }, 1000);
+    } else if (entries.length === 0 && intervalRef.current != null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    return () => {
+      if (intervalRef.current != null) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [entries]);
+
+  const toggleTypeModalVisibility = () => {
+    setIsTypeModalOpen(!isTypeModalOpen);
+  };
+
+  const toggleIDModalVisibility = () => {
+    setIsIdModalOpen(!isIdModalOpen);
   };
 
   // remove this once test machine is removed
   const addEntry = async () => {
-    const newMachineID = "test";
     try {
-      setEntries([
-        ...entries,
-        await makeNewEntry(newMachineID),
-      ]);
+      if (entries.some((entry: any) => { return entry.id === 'test' })) {
+        Alert.alert(
+          "Failed to watch machine",
+          `Already watching machine test`
+        );
+        return;
+      }
+
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
-        {},
-        {
-          headers: {
-            'machineId': newMachineID,
-          }
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`, {}, {
+        headers: {
+          'machineId': 'test',
         }
-      );
+      });
+      setEntries(response.data.watchedMachines);
     } catch (error) {
       if (error.response && (error.response.status === 400 || error.response.status === 404)) {
         Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
@@ -114,23 +182,28 @@ export default function Status() {
       }
     }
   };
-  */
 
+  // remove this once test machine is removed
   const updateEntries = useCallback(() => {
     try {
       setEntries((prevEntries: any) =>
         prevEntries.map((item: any) => {
-          if (item.status === 'Not in use') {
-            setTestAvail(true);
-            return item;
+          let status;
+          const remainingTime = new Date(item.endTime).getTime() - Date.now();
+          if (item.state === 'on') {
+            if (remainingTime <= 999) {
+              status = 'Done';
+            } else if (remainingTime > 0) {
+              const minutes = Math.floor((remainingTime / 1000) / 60);
+              const seconds = Math.floor((remainingTime / 1000) % 60);
+              status = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }
+          } else {
+            status = 'Available';
           }
-          const remainingTime = new Date(item.endTime.getTime() - Date.now());
-          if (remainingTime.getTime() <= 999) {
-            setTestAvail(true);
-            return { ...item, status: 'Complete' };
-          }
-          setTestAvail(false);
-          return { ...item, status: `${remainingTime.getMinutes() < 10 ? '0' : ''}${remainingTime.getMinutes()}:${remainingTime.getSeconds() < 10 ? '0' : ''}${remainingTime.getSeconds()} left` };
+
+          const alphaId = item.machineId.slice(-1);
+          return { ...item, status, alphaId };
         })
       );
     } catch (err) {
@@ -138,36 +211,16 @@ export default function Status() {
     }
   }, []);
 
-  const tick = useCallback(() => {
-    updateEntries();
-    animationRef.current = requestAnimationFrame(tick);
-  }, [updateEntries]);
-
-  useEffect(() => {
-    if (!animationRef.current && entries.length > 0) {
-      animationRef.current = requestAnimationFrame(tick);
-    } else if (entries.length === 0) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-
-    return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [entries, tick]);
-
   const deleteEntry = async (id) => {
     // const machineID = "test"; // hard-coded machineID
     const machineID = id;
 
     try {
       setEntries((entries: any) => {
-        return entries.filter((item: any) => item.id !== id);
+        return entries.filter((item: any) => item.machineId != id);
       });
 
-      const response = await axios.delete(
+      await axios.delete(
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
         {
           data: {
@@ -240,28 +293,19 @@ export default function Status() {
               <View style={styles.machineContainer}>
                 <LevelMachines
                   level={17}
-                  freeWashers={1}
-                  totalWasher={5}
-                  freeDryers={2}
-                  totalDryers={4}
+                  freeWashers={machineCount[17].washer.available}
+                  totalWasher={machineCount[17].washer.total}
+                  freeDryers={machineCount[17].dryer.available}
+                  totalDryers={machineCount[17].dryer.total}
                 >
                   {" "}
                 </LevelMachines>
                 <LevelMachines
                   level={9}
-                  freeWashers={3}
-                  totalWasher={5}
-                  freeDryers={4}
-                  totalDryers={4}
-                >
-                  {" "}
-                </LevelMachines>
-                <LevelMachines
-                  level={'test'}
-                  freeWashers={testAvail ? 1 : 0}
-                  totalWasher={1}
-                  freeDryers={0}
-                  totalDryers={0}
+                  freeWashers={machineCount[9].washer.available}
+                  totalWasher={machineCount[9].washer.total}
+                  freeDryers={machineCount[9].dryer.available}
+                  totalDryers={machineCount[9].dryer.total}
                 >
                   {" "}
                 </LevelMachines>
@@ -270,44 +314,36 @@ export default function Status() {
                 <Text style={styles.titleText}>Now Watching</Text>
               </View>
               <View style={styles.watchingView}>
-                {!entries.length ? (
-                  <Text style={styles.watchText}>{"You are not watching any machines now. Select the '+' button to watch a machine."}</Text>
-                ) : (
-                  <FlatList
-                    contentContainerStyle={styles.list}
-                    data={entries}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <View style={styles.entryFullView}>
-                        <View style={styles.entryView}>
-                          {/* If item.type == A, needs to be handled by backend to determine
-                          which level has the fastest machine time */}
-                          <Text style={styles.entry}>{(item.id && item.id === 'test') ? '' : 'Level'} {item.floor}</Text>
-                          <Text style={styles.entry}>
-                            {" "}
-                            {item.type == "washer" ? "Washer" : (item.type == "dryer" ? "Dryer" : "")} {item.alpha_id}
-                          </Text>
-                          <Text style={styles.entry}> {item.status}</Text>
-                        </View>
-                        <IconButton
-                          icon="trash-can-outline"
-                          size={30}
-                          onPress={() => deleteEntry(item.id)}
-                        // to link
-                        />
+                <FlatList
+                  ListEmptyComponent={<Text style={styles.watchText}>{"You are not watching any machines now.\nSelect the '+' button to watch a machine."}</Text>}
+                  contentContainerStyle={styles.list}
+                  data={entries}
+                  keyExtractor={(item) => item.machineId}
+                  renderItem={({ item }) => (
+                    <View style={styles.entryFullView}>
+                      <View style={styles.entryView}>
+                        <Text style={styles.entry}>{item.machineId === 'test' ? 'Test' : `Level ${item.floor}`}</Text>
+                        <Text style={styles.entry}>
+                          {item.machineType == "washer" ? "Washer" : (item.machineType == "dryer" ? "Dryer" : "")} {item.machineId === 'test' ? '' : item.alphaId}
+                        </Text>
+                        <Text style={styles.entry}>{item.status}</Text>
                       </View>
-                    )}
-                  />
-                )}
+                      <IconButton
+                        icon="trash-can-outline"
+                        size={30}
+                        onPress={() => deleteEntry(item.machineId)}
+                      />
+                    </View>
+                  )}
+                />
               </View>
             </View>
             <Portal>
               <FAB.Group
                 style={styles.fab}
-                open={open}
-                visible
-                icon={open ? "filter-menu" : "plus"}
-                label={open ? "Filter watch by" : ""}
+                visible={true}
+                open={isFABOpen}
+                icon={isFABOpen ? 'window-close' : 'plus'}
                 fabStyle={styles.fabButton}
                 color="black"
                 backdropColor="#ffffff00"
@@ -326,7 +362,6 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => toggleTypeModalVisibility(),
                   },
-                  /*
                   {
                     icon: "code-braces",
                     label: "Watch test machine",
@@ -334,19 +369,18 @@ export default function Status() {
                     style: { backgroundColor: "lightblue" },
                     onPress: () => addEntry(),
                   },
-                  */
                 ]}
-                onStateChange={onStateChange}
+                onStateChange={() => { setIsFABOpen(!isFABOpen) }}
               />
             </Portal>
           </PaperProvider>
           <TypeModal
             visible={isTypeModalOpen}
-            onClose={() => setTypeModalOpen(false)}
+            onClose={() => setIsTypeModalOpen(false)}
           ></TypeModal>
           <IDModal
             visible={isIdModalOpen}
-            onClose={() => setIModalOpen(false)}
+            onClose={() => setIsIdModalOpen(false)}
           ></IDModal>
         </ImageBackground>
       </SafeAreaView>
@@ -447,10 +481,10 @@ const styles = StyleSheet.create({
   },
   watchText: {
     fontSize: 16,
-    alignSelf: "flex-start",
+    alignSelf: "center",
     alignItems: "flex-start",
     justifyContent: "flex-start",
-    textAlign: "center",
+    textAlign: "left",
     color: "black",
     paddingHorizontal: 30,
   },
@@ -475,8 +509,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    margin: 16,
-    right: 10,
+    margin: 10,
+    right: 0,
     bottom: 0,
   },
   fabButton: {
@@ -517,8 +551,8 @@ const styles = StyleSheet.create({
   },
   entryFullView: {
     flexDirection: "row",
-    padding: 10,
-    marginVertical: 5,
+    padding: 0,
+    marginVertical: 0,
     borderRadius: 10,
     alignContent: "center",
     justifyContent: "space-around",

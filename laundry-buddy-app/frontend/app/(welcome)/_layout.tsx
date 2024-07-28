@@ -14,7 +14,7 @@ export default function WelcomeLayout() {
         const response = await axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/user/profile`
         );
-        console.log(`Successfully restored previous session with user: ${response.data.user.username}`);
+        console.log(`Successfully restored previous session with user: ${response.data.username}`);
         return true;
       } catch (error) {
         console.log(`Failed to restore previous session, redirecting to login page: (${error.response.status}) ${error.response.data.msg}`)

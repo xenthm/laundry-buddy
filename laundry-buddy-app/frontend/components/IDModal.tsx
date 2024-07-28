@@ -42,92 +42,35 @@ const IDModal = ({ visible, onClose }) => {
     return null;
   };
 
-  const makeNewEntry = async (newMachineId: any) => {
-    try {
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/machine`,
-        {
-          headers: {
-            'machineId': newMachineId,
-          }
-        }
-      );
-      const endTime = new Date(response.data.endTime);
-      let status;
-      if (response.data.state === 'on') {
-        if (endTime.getTime() > Date.now()) {
-          status = 'In use';
-        } else {
-          status = 'Complete';
-        }
-      } else {
-        status = 'Not in use';
-      }
-
-      return {
-        id: newMachineId,
-        alpha_id: selectedAlphaId,  // not from response
-        floor: selectedFloor,       // not from response
-        type: response.data.machineType,
-        status: status,
-        duration: response.data.duration,
-        endTime: endTime,
-      };
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        Alert.alert("Failed to get machine state", `${error.response.data.msg}`);
-      } else {
-        Alert.alert(
-          "Failed to get machine state",
-          `Please contact the developers with the following information\n\n${error}`
-        );
-        console.error(error);
-      }
-    }
-  };
-
   const addEntry = async () => {
+    onClose();
     let newMachineId;
     if (selectedType === '' || selectedFloor === 'test' || selectedAlphaId === '') {
       newMachineId = "test";
       setSelectedType('');
-      setSelectedFloor('testy');
+      setSelectedFloor('test');
       setSelectedAlphaId('');
     } else {
       newMachineId = (selectedFloor.length === 1 ? ('0' + selectedFloor) : selectedFloor) + selectedType + selectedAlphaId;
     }
     setMachineId(newMachineId); // not used for anything as of now
-    console.log(`new machine ID: ${newMachineId}`);
 
     try {
-      if (entries.find((item) => { return item.id === newMachineId })) {
+      if (entries.some((entry: any) => { return entry.id === newMachineId })) {
         Alert.alert(
           "Failed to watch machine",
           `Already watching machine ${newMachineId}`
         );
-        onClose();
         return;
-      } else {
-        setEntries([
-          ...entries,
-          await makeNewEntry(newMachineId),
-        ]);
       }
 
-      console.log("Floor: " + selectedFloor + " Type: " + selectedType);
-      console.log("Entries now..." + entries.length);
-
-      // the 2 requests in this file can be combined into one
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
-        {},
-        {
-          headers: {
-            'machineId': newMachineId,
-          }
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`, {}, {
+        headers: {
+          'machineId': newMachineId,
         }
-      );
-      onClose();
+      });
+      setEntries(response.data.watchedMachines);
     } catch (error) {
       if (error.response && (error.response.status === 400 || error.response.status === 404)) {
         Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
@@ -202,7 +145,7 @@ const IDModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[
                 styles.optionButton,
-                selectedFloor === "" && styles.selectedButton,
+                selectedFloor === "9" && styles.selectedButton,
               ]}
               onPress={() => handleFloorSelect("9")}
             >

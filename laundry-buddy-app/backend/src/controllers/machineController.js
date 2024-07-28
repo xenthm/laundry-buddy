@@ -32,7 +32,7 @@ exports.setMachineState = async (req, res, next) => {
 
   let endTime;
   if (state === "on") {
-    endTime = new Date(new Date().getTime() + duration);
+    endTime = new Date(Date.now() + duration);
   } else if (state === "off") {
     endTime = undefined;
   } else {
@@ -65,3 +65,23 @@ exports.setMachineState = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.countMachines = async (req, res, next) => {
+  const { floor, machineType } = req.body;
+
+  if (typeof floor != 'number' || floor === 0) {
+    return res.status(400).json({ msg: "Invalid floor, must be a non-zero number" });
+  }
+
+  if (!["washer", "dryer"].includes(machineType)) {
+    return res.status(400).json({ msg: "Invalid machineType, must be 'washer' or 'dryer'" });
+  }
+
+  try {
+    const available = await Machine.countDocuments({ machineType, floor, state: "off" });
+    const total = await Machine.countDocuments({ machineType, floor });
+    res.json({ available, total });
+  } catch (err) {
+    next(err);
+  }
+}
