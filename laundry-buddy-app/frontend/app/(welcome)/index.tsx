@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationHelpersContext } from "@react-navigation/native";
 import { Link, router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import {
@@ -17,6 +17,7 @@ import {
   ImageBackground,
 } from "react-native";
 import { TextInput } from "react-native-paper";
+import Spinner from 'react-native-loading-spinner-overlay';
 
 const logo = require("@/assets/images/icon_laundrybuddy.png");
 const bg = require("@/assets/images/water.png");
@@ -25,11 +26,44 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggingIn(true);
+    const checkLoggedIn = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/user/profile`
+        );
+        console.log(`Successfully restored previous session with user: ${response.data.username}`);
+        return true;
+      } catch (error) {
+        console.log(`Failed to restore previous session, redirecting to login page: (${error.response.status}) ${error.response.data.msg}`)
+        return false; // Return false if an error occurs or user is not logged in
+      }
+    };
+
+    const navigateToStatusScreen = async () => {
+      if (await checkLoggedIn()) {
+        router.navigate('(main)/status'); // Navigate to the status screen
+      } else {
+        Alert.alert(
+          'Failed to log in automatically',
+          'Please log in again'
+        )
+      }
+      setIsLoggingIn(false);
+    };
+
+    navigateToStatusScreen(); // Call the function to initiate the navigation logic
+  }, []);
+
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
   const handleLogin = async () => {
+    setIsLoggingIn(true);
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/auth/login`,
@@ -46,6 +80,7 @@ export default function Login() {
       setUsername('');
       setPassword('');
       setShowPassword(false);
+      setIsLoggingIn(false);
       router.navigate("(main)/status");
     } catch (error) {
       // can use this to see what the response was from the API
@@ -63,6 +98,10 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Spinner
+        visible={loggingIn}
+        textContent={'Logging in...'}
+      />
       <ImageBackground
         source={bg}
         resizeMode="cover"

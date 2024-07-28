@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import LevelMachines from "@/components/LevelMachines";
 import { router } from 'expo-router';
 import axios from "axios";
@@ -10,6 +10,7 @@ import {
   View,
   ImageBackground,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import { IconButton, FAB, Portal, PaperProvider } from "react-native-paper";
 import TypeModal from "@/components/TypeModal";
@@ -23,6 +24,9 @@ export default function Status() {
   const [isFABOpen, setIsFABOpen] = useState(false);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [isIdModalOpen, setIsIdModalOpen] = useState(false);
+  const countdownIntervalRef = useRef<number | null>(null);
+  const dashboardIntervalRef = useRef<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [machineCount, setMachineCount] = useState({
     test: {
       washer: {
@@ -55,7 +59,6 @@ export default function Status() {
       }
     }
   });
-  const intervalRef = useRef<number | null>(null);
 
   const fetchWatchedMachines = async () => {
     try {
@@ -63,9 +66,9 @@ export default function Status() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/profile`
       );
       if (response.data.watchedMachines) {
-        console.log('Successfully restored watched machines');
         setEntries(response.data.watchedMachines);
       }
+      console.log(`Successfully restored ${response.data.watchedMachines ? response.data.watchedMachines.length : '0'} watched machines`);
     } catch (error) {
       if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
         Alert.alert("Failed to fetch watched machines", `${error.response.data.msg}`);
@@ -79,7 +82,7 @@ export default function Status() {
     }
   }
 
-  const fetchMachineCount = async (floor: number, machineType: string) => {
+  const fetchMachineCount = useCallback(async (floor: number, machineType: string) => {
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/machine/count`,
@@ -97,9 +100,9 @@ export default function Status() {
         console.error(error);
       }
     }
-  }
+  }, [])
 
-  const updateDashboard = async () => {
+  const updateDashboard = useCallback(async () => {
     for (const floor in machineCount) {
       if (floor === 'test') {
         continue;
@@ -112,37 +115,61 @@ export default function Status() {
           [floorNum]: {
             ...prevState[floorNum],
             [type]: { available, total },
-          }, 
+          },
         }));
       }
     }
     console.log('Successfully restored machine count');
-  }
+  }, [])
 
-  // Get watched machines initially
+  // get previous info on mount
   useEffect(() => {
+
     fetchWatchedMachines();
     updateDashboard();
+    updateEntries();
+
   }, [])
 
   // Timer for now watching
   useEffect(() => {
-    if (entries.length > 0 && intervalRef.current === null) {
-      intervalRef.current = window.setInterval(() => {
+    if (entries.length > 0 && countdownIntervalRef.current === null) {
+      countdownIntervalRef.current = window.setInterval(() => {
         updateEntries();
       }, 1000);
-    } else if (entries.length === 0 && intervalRef.current != null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    } else if (entries.length === 0 && countdownIntervalRef.current != null) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
 
     return () => {
-      if (intervalRef.current != null) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      if (countdownIntervalRef.current != null) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
     };
   }, [entries]);
+
+  // auto-refresh dashboard
+  useEffect(() => {
+    dashboardIntervalRef.current = window.setInterval(() => {
+      updateDashboard();
+    }, 60000);
+
+    return () => {
+      if (dashboardIntervalRef.current != null) {
+        clearInterval(dashboardIntervalRef.current);
+        dashboardIntervalRef.current = null;
+      }
+    }
+  }, [])
+
+  // pull down to manaully refresh dashboard
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await updateDashboard();
+    setRefreshing(false);
+  }, []);
 
   const toggleTypeModalVisibility = () => {
     setIsTypeModalOpen(!isTypeModalOpen);
@@ -183,14 +210,14 @@ export default function Status() {
     }
   };
 
-  // remove this once test machine is removed
+  // append status and alphaId to each entry
   const updateEntries = useCallback(() => {
     try {
       setEntries((prevEntries: any) =>
         prevEntries.map((item: any) => {
-          let status;
-          const remainingTime = new Date(item.endTime).getTime() - Date.now();
+          let status = 'Available';
           if (item.state === 'on') {
+            const remainingTime = new Date(item.endTime).getTime() - Date.now();
             if (remainingTime <= 999) {
               status = 'Done';
             } else if (remainingTime > 0) {
@@ -198,8 +225,6 @@ export default function Status() {
               const seconds = Math.floor((remainingTime / 1000) % 60);
               status = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
             }
-          } else {
-            status = 'Available';
           }
 
           const alphaId = item.machineId.slice(-1);
@@ -212,7 +237,6 @@ export default function Status() {
   }, []);
 
   const deleteEntry = async (id) => {
-    // const machineID = "test"; // hard-coded machineID
     const machineID = id;
 
     try {
@@ -322,11 +346,11 @@ export default function Status() {
                   renderItem={({ item }) => (
                     <View style={styles.entryFullView}>
                       <View style={styles.entryView}>
-                        <Text style={styles.entry}>{item.machineId === 'test' ? 'Test' : `Level ${item.floor}`}</Text>
-                        <Text style={styles.entry}>
+                        <Text style={[styles.entry, { flex: 9 }]}>{item.machineId === 'test' ? 'Test' : `Level ${item.floor}`}</Text>
+                        <Text style={[styles.entry, { flex: 10 }]}>
                           {item.machineType == "washer" ? "Washer" : (item.machineType == "dryer" ? "Dryer" : "")} {item.machineId === 'test' ? '' : item.alphaId}
                         </Text>
-                        <Text style={styles.entry}>{item.status}</Text>
+                        <Text style={[styles.entry, { flex: 9 }]}>{item.status}</Text>
                       </View>
                       <IconButton
                         icon="trash-can-outline"
@@ -335,6 +359,9 @@ export default function Status() {
                       />
                     </View>
                   )}
+                  refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                  }
                 />
               </View>
             </View>
@@ -430,7 +457,7 @@ const styles = StyleSheet.create({
   },
   watchingView: {
     flexDirection: "row",
-    paddingTop: 20,
+    paddingTop: 10,
     alignContent: "center",
     alignItems: "center",
     justifyContent: "center",
@@ -547,7 +574,8 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1,
-    justifyContent: "space-around",
+    justifyContent: "flex-start",
+    height: 800,
   },
   entryFullView: {
     flexDirection: "row",
@@ -570,9 +598,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   entry: {
-    fontSize: 20,
+    fontSize: 19,
+    paddingHorizontal: 1,
     textAlign: "center",
-    alignItems: "center",
-    alignSelf: "center",
   },
 });
