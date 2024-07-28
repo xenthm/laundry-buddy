@@ -15,7 +15,11 @@ import axios from "axios";
 
 // This modal allows users to watch a specific machine in the laundry room
 
-const IDModal = ({ visible, onClose }) => {
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const IDModal = ({ visible, onClose, sendPushNotification }) => {
   const { entries, setEntries } = useContext<any>(EntriesContext);
   const [machineID, setMachineId] = useState("test");
   const [selectedType, setSelectedType] = useState("");
@@ -23,6 +27,11 @@ const IDModal = ({ visible, onClose }) => {
   const [selectedAlphaId, setSelectedAlphaId] = useState("");
   const [isFocus, setIsFocus] = useState(false);
 
+  async function schedulePushNotification(remainingTime: any) {
+    console.log("Scheduled for " + remainingTime);
+    await delay(remainingTime);
+    sendPushNotification();
+  }
   const handleTypeSelect = (option) => {
     setSelectedType(option);
   };
@@ -48,26 +57,28 @@ const IDModal = ({ visible, onClose }) => {
         `${process.env.EXPO_PUBLIC_API_URL}/api/machine`,
         {
           headers: {
-            'machineId': newMachineId,
-          }
+            machineId: newMachineId,
+          },
         }
       );
       const endTime = new Date(response.data.endTime);
+      const remainingTime = new Date(endTime.getTime() - Date.now()).getTime();
       let status;
-      if (response.data.state === 'on') {
+      if (response.data.state === "on") {
         if (endTime.getTime() > Date.now()) {
-          status = 'In use';
+          status = "In use";
+          schedulePushNotification(remainingTime);
+          // schedule a notification only if the machine is in use
         } else {
-          status = 'Complete';
+          status = "Complete";
         }
       } else {
-        status = 'Not in use';
+        status = "Not in use";
       }
-
       return {
         id: newMachineId,
-        alpha_id: selectedAlphaId,  // not from response
-        floor: selectedFloor,       // not from response
+        alpha_id: selectedAlphaId, // not from response
+        floor: selectedFloor, // not from response
         type: response.data.machineType,
         status: status,
         duration: response.data.duration,
@@ -75,7 +86,10 @@ const IDModal = ({ visible, onClose }) => {
       };
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        Alert.alert("Failed to get machine state", `${error.response.data.msg}`);
+        Alert.alert(
+          "Failed to get machine state",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to get machine state",
@@ -88,19 +102,30 @@ const IDModal = ({ visible, onClose }) => {
 
   const addEntry = async () => {
     let newMachineId;
-    if (selectedType === '' || selectedFloor === 'test' || selectedAlphaId === '') {
+    if (
+      selectedType === "" ||
+      selectedFloor === "test" ||
+      selectedAlphaId === ""
+    ) {
       newMachineId = "test";
-      setSelectedType('');
-      setSelectedFloor('testy');
-      setSelectedAlphaId('');
+      setSelectedType("");
+      setSelectedFloor("testy");
+      setSelectedAlphaId("");
     } else {
-      newMachineId = (selectedFloor.length === 1 ? ('0' + selectedFloor) : selectedFloor) + selectedType + selectedAlphaId;
+      newMachineId =
+        (selectedFloor.length === 1 ? "0" + selectedFloor : selectedFloor) +
+        selectedType +
+        selectedAlphaId;
     }
     setMachineId(newMachineId); // not used for anything as of now
     console.log(`new machine ID: ${newMachineId}`);
 
     try {
-      if (entries.find((item) => { return item.id === newMachineId })) {
+      if (
+        entries.find((item) => {
+          return item.id === newMachineId;
+        })
+      ) {
         Alert.alert(
           "Failed to watch machine",
           `Already watching machine ${newMachineId}`
@@ -108,10 +133,7 @@ const IDModal = ({ visible, onClose }) => {
         onClose();
         return;
       } else {
-        setEntries([
-          ...entries,
-          await makeNewEntry(newMachineId),
-        ]);
+        setEntries([...entries, await makeNewEntry(newMachineId)]);
       }
 
       console.log("Floor: " + selectedFloor + " Type: " + selectedType);
@@ -123,13 +145,16 @@ const IDModal = ({ visible, onClose }) => {
         {},
         {
           headers: {
-            'machineId': newMachineId,
-          }
+            machineId: newMachineId,
+          },
         }
       );
       onClose();
     } catch (error) {
-      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+      if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 404)
+      ) {
         Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
       } else {
         Alert.alert(

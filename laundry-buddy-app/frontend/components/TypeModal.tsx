@@ -15,13 +15,22 @@ import axios from "axios";
 // This modal searches for the fastest completed machine with the chosen requirements
 // These requirements are either by floor (or any floor) or by machine type
 
-const TypeModal = ({ visible, onClose }) => {
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const TypeModal = ({ visible, onClose, sendPushNotification }) => {
   //const { isTypeModalOpen, setTypeModalOpen } = useContext(TypeStateContext);
   const { entries, setEntries } = useContext<any>(EntriesContext);
   const [selectedType, setSelectedType] = useState("");
   const [selectedFloor, setSelectedFloor] = useState<any>(0);
   const [responseAlphaId, setResponseAlphaId] = useState("");
 
+  async function schedulePushNotification(remainingTime: any) {
+    console.log("Scheduled for " + remainingTime);
+    await delay(remainingTime);
+    sendPushNotification();
+  }
 
   const handleTypeSelect = (option) => {
     if (option === 'W') {
@@ -40,10 +49,12 @@ const TypeModal = ({ visible, onClose }) => {
 
   const makeNewEntry = async (machine) => {
     const endTime = new Date(machine.endTime);
+    const remainingTime = new Date(endTime.getTime() - Date.now()).getTime();
     let status;
     if (machine.state === 'on') {
       if (endTime.getTime() > Date.now()) {
         status = 'In use';
+        schedulePushNotification(remainingTime);
       } else {
         status = 'Complete';
       }

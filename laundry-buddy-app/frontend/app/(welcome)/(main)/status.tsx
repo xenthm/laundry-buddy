@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import LevelMachines from "@/components/LevelMachines";
-import { router } from 'expo-router';
+import { router } from "expo-router";
 import axios from "axios";
 import {
   Alert,
@@ -10,13 +10,97 @@ import {
   View,
   ImageBackground,
   FlatList,
+  Platform,
 } from "react-native";
 import { IconButton, FAB, Portal, PaperProvider } from "react-native-paper";
 import TypeModal from "@/components/TypeModal";
 import { EntriesContext } from "@/contexts/EntriesContext";
 import IDModal from "@/components/IDModal";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import { executeOnUIRuntimeSync } from "react-native-reanimated";
 
 const bg = require("@/assets/images/water.png");
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+async function sendPushNotification(expoPushToken: string) {
+  const message = {
+    to: expoPushToken,
+    sound: "default",
+    title: "Machine cycle complete!",
+    body: "Laundry should be cleared soon.",
+  };
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(message),
+  });
+  console.log("Notification sent!");
+}
+
+function handleRegistrationError(errorMessage: string) {
+  alert(errorMessage);
+  throw new Error(errorMessage);
+}
+
+async function registerForPushNotificationsAsync() {
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  if (Device.isDevice) {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      handleRegistrationError(
+        "Permission not granted to get push token for push notification!"
+      );
+      return;
+    }
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ??
+      Constants?.easConfig?.projectId;
+    if (!projectId) {
+      handleRegistrationError("Project ID not found");
+    }
+    try {
+      const pushTokenString = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig.extra.eas.projectId,
+        })
+      ).data;
+      console.log(pushTokenString);
+      return pushTokenString;
+    } catch (e: unknown) {
+      handleRegistrationError(`${e}`);
+    }
+  } else {
+    handleRegistrationError("Must use physical device for push notifications");
+  }
+}
 
 export default function Status() {
   const [entries, setEntries] = useState<any>([]);
@@ -25,16 +109,47 @@ export default function Status() {
   const onStateChange = ({ open }) => setState({ open });
   const { open } = state;
   const [isTypeModalOpen, setTypeModalOpen] = useState(false);
-  const [isIdModalOpen, setIModalOpen] = useState(false);
+  const [isIdModalOpen, setIdModalOpen] = useState(false);
 
-  const [testAvail, setTestAvail] = useState(true);   // TODO: refresh status page and get machine info overview at a set interval (auto refresh), or when user refreshes page
+  const [testAvail, setTestAvail] = useState(true); // TODO: refresh status page and get machine info overview at a set interval (auto refresh), or when user refreshes page
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [notification, setNotification] = useState<
+    Notifications.Notification | undefined
+  >(undefined);
+  const notificationListener = useRef<Notifications.Subscription>();
+  const responseListener = useRef<Notifications.Subscription>();
+
+  useEffect(() => {
+    registerForPushNotificationsAsync()
+      .then((token) => setExpoPushToken(token ?? ""))
+      .catch((error: any) => setExpoPushToken(`${error}`));
+
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
+
+    return () => {
+      notificationListener.current &&
+        Notifications.removeNotificationSubscription(
+          notificationListener.current
+        );
+      responseListener.current &&
+        Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
 
   const toggleTypeModalVisibility = () => {
     setTypeModalOpen(!isTypeModalOpen);
   };
 
   const toggleIDModalVisibility = () => {
-    setIModalOpen(!isIdModalOpen);
+    setIdModalOpen(!isIdModalOpen);
     console.log(`entries length: ${entries.length}`);
   };
 
@@ -120,17 +235,24 @@ export default function Status() {
     try {
       setEntries((prevEntries: any) =>
         prevEntries.map((item: any) => {
-          if (item.status === 'Not in use') {
+          if (item.status === "Not in use") {
             setTestAvail(true);
             return item;
           }
           const remainingTime = new Date(item.endTime.getTime() - Date.now());
           if (remainingTime.getTime() <= 999) {
             setTestAvail(true);
-            return { ...item, status: 'Complete' };
+            return { ...item, status: "Complete" };
           }
           setTestAvail(false);
-          return { ...item, status: `${remainingTime.getMinutes() < 10 ? '0' : ''}${remainingTime.getMinutes()}:${remainingTime.getSeconds() < 10 ? '0' : ''}${remainingTime.getSeconds()} left` };
+          return {
+            ...item,
+            status: `${
+              remainingTime.getMinutes() < 10 ? "0" : ""
+            }${remainingTime.getMinutes()}:${
+              remainingTime.getSeconds() < 10 ? "0" : ""
+            }${remainingTime.getSeconds()} left`,
+          };
         })
       );
     } catch (err) {
@@ -171,16 +293,22 @@ export default function Status() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
         {
           data: {
-            'all': false,
+            all: false,
           },
           headers: {
-            'machineId': machineID,
+            machineId: machineID,
           },
         }
       );
     } catch (error) {
-      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
-        Alert.alert("Failed to set machine state", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 404)
+      ) {
+        Alert.alert(
+          "Failed to set machine state",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to set machine state",
@@ -196,11 +324,18 @@ export default function Status() {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/auth/logout`
       );
-      Alert.alert('Log out', response.data.msg);
+      Alert.alert("Log out", response.data.msg);
       router.back();
     } catch (error) {
-      if (error.response && error.response.status >= 400 && error.response.status < 500) {
-        Alert.alert("Failed to set machine state", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        Alert.alert(
+          "Failed to set machine state",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to set machine state",
@@ -257,7 +392,7 @@ export default function Status() {
                   {" "}
                 </LevelMachines>
                 <LevelMachines
-                  level={'test'}
+                  level={"test"}
                   freeWashers={testAvail ? 1 : 0}
                   totalWasher={1}
                   freeDryers={0}
@@ -271,7 +406,11 @@ export default function Status() {
               </View>
               <View style={styles.watchingView}>
                 {!entries.length ? (
-                  <Text style={styles.watchText}>{"You are not watching any machines now. Select the '+' button to watch a machine."}</Text>
+                  <Text style={styles.watchText}>
+                    {
+                      "You are not watching any machines now. Select the '+' button to watch a machine."
+                    }
+                  </Text>
                 ) : (
                   <FlatList
                     contentContainerStyle={styles.list}
@@ -282,10 +421,18 @@ export default function Status() {
                         <View style={styles.entryView}>
                           {/* If item.type == A, needs to be handled by backend to determine
                           which level has the fastest machine time */}
-                          <Text style={styles.entry}>{(item.id && item.id === 'test') ? '' : 'Level'} {item.floor}</Text>
+                          <Text style={styles.entry}>
+                            {item.id && item.id === "test" ? "" : "Level"}{" "}
+                            {item.floor}
+                          </Text>
                           <Text style={styles.entry}>
                             {" "}
-                            {item.type == "washer" ? "Washer" : (item.type == "dryer" ? "Dryer" : "")} {item.alpha_id}
+                            {item.type == "washer"
+                              ? "Washer"
+                              : item.type == "dryer"
+                              ? "Dryer"
+                              : ""}{" "}
+                            {item.alpha_id}
                           </Text>
                           <Text style={styles.entry}> {item.status}</Text>
                         </View>
@@ -293,7 +440,6 @@ export default function Status() {
                           icon="trash-can-outline"
                           size={30}
                           onPress={() => deleteEntry(item.id)}
-                        // to link
                         />
                       </View>
                     )}
@@ -343,14 +489,16 @@ export default function Status() {
           <TypeModal
             visible={isTypeModalOpen}
             onClose={() => setTypeModalOpen(false)}
+            sendPushNotification={() => sendPushNotification(expoPushToken)}
           ></TypeModal>
           <IDModal
             visible={isIdModalOpen}
-            onClose={() => setIModalOpen(false)}
+            onClose={() => setIdModalOpen(false)}
+            sendPushNotification={() => sendPushNotification(expoPushToken)}
           ></IDModal>
         </ImageBackground>
       </SafeAreaView>
-    </EntriesContext.Provider >
+    </EntriesContext.Provider>
   );
 }
 
