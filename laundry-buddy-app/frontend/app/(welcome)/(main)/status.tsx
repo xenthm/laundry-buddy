@@ -107,6 +107,7 @@ export default function Status() {
       if (floor === 'test') {
         continue;
       }
+
       const floorNum = Number(floor);
       for (const type of ['washer', 'dryer']) {
         const { available, total } = await fetchMachineCount(floorNum, type);
@@ -118,17 +119,26 @@ export default function Status() {
           },
         }));
       }
+
+      try {
+        await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/user/refresh`);
+        await fetchWatchedMachines();
+      } catch (error) {
+        Alert.alert(
+          "Failed to refresh user watched machine states",
+          `Please contact the developers with the following information\n\n${error}`
+        );
+        console.error(error);
+      }
     }
     console.log('Successfully restored machine count');
   }, [])
 
   // get previous info on mount
   useEffect(() => {
-
-    fetchWatchedMachines();
     updateDashboard();
+    fetchWatchedMachines();
     updateEntries();
-
   }, [])
 
   // Timer for now watching
@@ -153,6 +163,7 @@ export default function Status() {
   // auto-refresh dashboard
   useEffect(() => {
     dashboardIntervalRef.current = window.setInterval(() => {
+      console.log('auto-refreshing');
       updateDashboard();
     }, 60000);
 
@@ -167,6 +178,7 @@ export default function Status() {
   // pull down to manaully refresh dashboard
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    console.log('manually refreshing');
     await updateDashboard();
     setRefreshing(false);
   }, []);

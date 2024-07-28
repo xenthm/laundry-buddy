@@ -32,7 +32,6 @@ exports.findEarliestMachine = async (req, res, next) => {
     let query = Machine.findOne({ machineType: earliestMachineType, state: 'off', machineId: { $ne: 'test' } }).select('-_id')
 
     if (earliestMachineFloor != 'all') {
-      // Create base query for machines of the given type, floor, and not equal to 'test'
       query = query.where({ floor: earliestMachineFloor });
     }
 
@@ -41,8 +40,7 @@ exports.findEarliestMachine = async (req, res, next) => {
 
     // If no 'off' machine is found, modify the query to remove the state condition
     if (!req.machine) {
-      query = query.clone().where({ state: { $exists: true } }).sort({ endTime: 1 });
-      req.machine = await query.exec();
+      req.machine = await Machine.findOne({ machineType: earliestMachineType, machineId: { $ne: 'test' } }).select('-_id').sort({ endTime: 1 });
     }
 
     if (!req.machine) {
