@@ -26,11 +26,6 @@ const TypeModal = ({ visible, onClose, sendPushNotification }) => {
   const [selectedFloor, setSelectedFloor] = useState<any>(0);
   const [responseAlphaId, setResponseAlphaId] = useState("");
 
-  async function schedulePushNotification(remainingTime: any) {
-    console.log("Scheduled for " + remainingTime);
-    await delay(remainingTime);
-    sendPushNotification();
-  }
 
   const handleTypeSelect = (option) => {
     if (option === 'W') {
@@ -54,7 +49,6 @@ const TypeModal = ({ visible, onClose, sendPushNotification }) => {
     if (machine.state === 'on') {
       if (endTime.getTime() > Date.now()) {
         status = 'In use';
-        schedulePushNotification(remainingTime);
       } else {
         status = 'Complete';
       }
@@ -75,6 +69,7 @@ const TypeModal = ({ visible, onClose, sendPushNotification }) => {
       status: status,
       duration: machine.duration,
       endTime: endTime,
+      notifSent: false,
     };
   };
 

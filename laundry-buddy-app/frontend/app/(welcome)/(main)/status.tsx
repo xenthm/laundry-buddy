@@ -31,11 +31,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function sendPushNotification(expoPushToken: string) {
+async function sendPushNotification(expoPushToken: string, machineId: string) {
   const message = {
     to: expoPushToken,
     sound: "default",
-    title: "Machine cycle complete!",
+    title: "Machine " + machineId + " cycle complete!",
     body: "Laundry should be cleared soon.",
   };
 
@@ -122,7 +122,7 @@ export default function Status() {
       dryer: {
         available: 0,
         total: 0,
-      }
+      },
     },
     9: {
       washer: {
@@ -132,7 +132,7 @@ export default function Status() {
       dryer: {
         available: 4,
         total: 4,
-      }
+      },
     },
     17: {
       washer: {
@@ -142,8 +142,8 @@ export default function Status() {
       dryer: {
         available: 4,
         total: 4,
-      }
-    }
+      },
+    },
   });
   const intervalRef = useRef<number | null>(null);
 
@@ -153,12 +153,19 @@ export default function Status() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/profile`
       );
       if (response.data.watchedMachines) {
-        console.log('Successfully restored watched machines');
+        console.log("Successfully restored watched machines");
         setEntries(response.data.watchedMachines);
       }
     } catch (error) {
-      if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
-        Alert.alert("Failed to fetch watched machines", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        Alert.alert(
+          "Failed to fetch watched machines",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to fetch watched machines",
@@ -167,7 +174,7 @@ export default function Status() {
         console.error(error);
       }
     }
-  }
+  };
 
   const fetchMachineCount = async (floor: number, machineType: string) => {
     try {
@@ -177,8 +184,15 @@ export default function Status() {
       );
       return response.data;
     } catch (error) {
-      if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
-        Alert.alert("Failed to fetch machine count", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        Alert.alert(
+          "Failed to fetch machine count",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to fetch machine count",
@@ -187,27 +201,27 @@ export default function Status() {
         console.error(error);
       }
     }
-  }
+  };
 
   const updateDashboard = async () => {
     for (const floor in machineCount) {
-      if (floor === 'test') {
+      if (floor === "test") {
         continue;
       }
       const floorNum = Number(floor);
-      for (const type of ['washer', 'dryer']) {
+      for (const type of ["washer", "dryer"]) {
         const { available, total } = await fetchMachineCount(floorNum, type);
-        setMachineCount(prevState => ({
+        setMachineCount((prevState) => ({
           ...prevState,
           [floorNum]: {
             ...prevState[floorNum],
             [type]: { available, total },
-          }, 
+          },
         }));
       }
     }
-    console.log('Successfully restored machine count');
-  }
+    console.log("Successfully restored machine count");
+  };
 
   useEffect(() => {
     registerForPushNotificationsAsync()
@@ -238,7 +252,7 @@ export default function Status() {
   useEffect(() => {
     fetchWatchedMachines();
     updateDashboard();
-  }, [])
+  }, []);
 
   // Timer for now watching
   useEffect(() => {
@@ -270,23 +284,30 @@ export default function Status() {
   // remove this once test machine is removed
   const addEntry = async () => {
     try {
-      if (entries.some((entry: any) => { return entry.id === 'test' })) {
-        Alert.alert(
-          "Failed to watch machine",
-          `Already watching machine test`
-        );
+      if (
+        entries.some((entry: any) => {
+          return entry.id === "test";
+        })
+      ) {
+        Alert.alert("Failed to watch machine", `Already watching machine test`);
         return;
       }
 
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`, {}, {
-        headers: {
-          'machineId': 'test',
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
+        {},
+        {
+          headers: {
+            machineId: "test",
+          },
         }
-      });
+      );
       setEntries(response.data.watchedMachines);
     } catch (error) {
-      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+      if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 404)
+      ) {
         Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
       } else {
         Alert.alert(
@@ -299,26 +320,39 @@ export default function Status() {
   };
 
   // remove this once test machine is removed
+
   const updateEntries = useCallback(() => {
     try {
       setEntries((prevEntries: any) =>
         prevEntries.map((item: any) => {
           let status;
           const remainingTime = new Date(item.endTime).getTime() - Date.now();
-          if (item.state === 'on') {
+          if (item.notifSent === undefined) {
+            item.notifSent = false;
+          }
+          if (item.state === "on") {
             if (remainingTime <= 999) {
-              status = 'Done';
+              status = "Done";
+              console.log(status);
+              console.log(item.notifSent);
+              if (item.notifSent === false) {
+                sendPushNotification(expoPushToken, item.machineId);
+                item.notifSent = true;
+                console.log(item.notifSent);
+              }
             } else if (remainingTime > 0) {
-              const minutes = Math.floor((remainingTime / 1000) / 60);
+              const minutes = Math.floor(remainingTime / 1000 / 60);
               const seconds = Math.floor((remainingTime / 1000) % 60);
-              status = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+              status = `${minutes < 10 ? "0" : ""}${minutes}:${
+                seconds < 10 ? "0" : ""
+              }${seconds}`;
             }
           } else {
-            status = 'Available';
+            status = "Available";
           }
 
           const alphaId = item.machineId.slice(-1);
-          return { ...item, status, alphaId };
+          return { ...item, status, alphaId};
         })
       );
     } catch (err) {
@@ -443,16 +477,31 @@ export default function Status() {
               </View>
               <View style={styles.watchingView}>
                 <FlatList
-                  ListEmptyComponent={<Text style={styles.watchText}>{"You are not watching any machines now.\nSelect the '+' button to watch a machine."}</Text>}
+                  ListEmptyComponent={
+                    <Text style={styles.watchText}>
+                      {
+                        "You are not watching any machines now.\nSelect the '+' button to watch a machine."
+                      }
+                    </Text>
+                  }
                   contentContainerStyle={styles.list}
                   data={entries}
                   keyExtractor={(item) => item.machineId}
                   renderItem={({ item }) => (
                     <View style={styles.entryFullView}>
                       <View style={styles.entryView}>
-                        <Text style={styles.entry}>{item.machineId === 'test' ? 'Test' : `Level ${item.floor}`}</Text>
                         <Text style={styles.entry}>
-                          {item.machineType == "washer" ? "Washer" : (item.machineType == "dryer" ? "Dryer" : "")} {item.machineId === 'test' ? '' : item.alphaId}
+                          {item.machineId === "test"
+                            ? "Test"
+                            : `Level ${item.floor}`}
+                        </Text>
+                        <Text style={styles.entry}>
+                          {item.machineType == "washer"
+                            ? "Washer"
+                            : item.machineType == "dryer"
+                            ? "Dryer"
+                            : ""}{" "}
+                          {item.machineId === "test" ? "" : item.alphaId}
                         </Text>
                         <Text style={styles.entry}>{item.status}</Text>
                       </View>
@@ -471,7 +520,7 @@ export default function Status() {
                 style={styles.fab}
                 visible={true}
                 open={isFABOpen}
-                icon={isFABOpen ? 'window-close' : 'plus'}
+                icon={isFABOpen ? "window-close" : "plus"}
                 fabStyle={styles.fabButton}
                 color="black"
                 backdropColor="#ffffff00"
@@ -498,19 +547,19 @@ export default function Status() {
                     onPress: () => addEntry(),
                   },
                 ]}
-                onStateChange={() => { setIsFABOpen(!isFABOpen) }}
+                onStateChange={() => {
+                  setIsFABOpen(!isFABOpen);
+                }}
               />
             </Portal>
           </PaperProvider>
           <TypeModal
             visible={isTypeModalOpen}
             onClose={() => setIsTypeModalOpen(false)}
-            sendPushNotification={() => sendPushNotification(expoPushToken)}
           ></TypeModal>
           <IDModal
             visible={isIdModalOpen}
             onClose={() => setIsIdModalOpen(false)}
-            sendPushNotification={() => sendPushNotification(expoPushToken)}
           ></IDModal>
         </ImageBackground>
       </SafeAreaView>

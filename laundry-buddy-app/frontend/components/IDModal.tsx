@@ -25,13 +25,9 @@ const IDModal = ({ visible, onClose, sendPushNotification }) => {
   const [selectedType, setSelectedType] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("test");
   const [selectedAlphaId, setSelectedAlphaId] = useState("");
+  const [notifSent, setNotifSent] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
 
-  async function schedulePushNotification(remainingTime: any) {
-    console.log("Scheduled for " + remainingTime);
-    await delay(remainingTime);
-    sendPushNotification();
-  }
   const handleTypeSelect = (option) => {
     setSelectedType(option);
   };
@@ -72,7 +68,7 @@ const IDModal = ({ visible, onClose, sendPushNotification }) => {
     setMachineId(newMachineId); // not used for anything as of now
 
     try {
-      if (entries.some((entry: any) => { return entry.id === newMachineId })) {
+      if (entries.some((entry: any) => { return entry.id === newMachineId})) {
         Alert.alert(
           "Failed to watch machine",
           `Already watching machine ${newMachineId}`
