@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(auth);
 
 // Route to get user profile
-router.get('/profile', getMachineDetails, getUserProfile);
+router.get('/profile', getUserProfile);
 
 // Route to update user profile
 router.put('/profile', updateUserProfile);

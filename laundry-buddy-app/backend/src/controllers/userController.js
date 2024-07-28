@@ -4,10 +4,12 @@ const Machine = require('../models/Machine');
 // Get user profile
 exports.getUserProfile = async (req, res, next) => {
   try {
-    res.json({
-      user: req.user,
-      machineDetails: req.machineDetails,
-    });
+    if (req.user.watchedMachines.length === 0) {
+      req.user.watchedMachines = undefined;
+    }
+    res.json(
+      req.user,
+    );
   } catch (err) {
     next(err);
   }
@@ -62,13 +64,29 @@ exports.deleteUserAccount = async (req, res, next) => {
 exports.watchMachine = async (req, res, next) => {
   try {
     // if machine to be added is already in the array, return 400
-    if (req.user.watchedMachines.indexOf(req.machine.machineId) != -1) {
-      return res.status(400).json({ msg: `Already watching machine '${req.machine.machineId}'` });
+    const currMachineId = req.machine.machineId;
+    if (req.user.watchedMachines.some((element) => { return element.machineId === currMachineId; })) {
+      return res.status(400).json({ msg: `Already watching machine '${currMachineId}'` });
     }
-    req.user.watchedMachines.push(req.machine.machineId); // sorting can happen here
+    req.user.watchedMachines.push(req.machine);
+
+    // sorts watchedMachines in ascending endTime, placing machines that are off first
+    req.user.watchedMachines.sort((a, b) => {
+      // 
+      if (a.state === 'off' || a.endTime < b.endTime) {
+        return - 1
+      }
+      if (b.state === 'off' || a.endTime > b.endTime) {
+        return 1;
+      }
+      return 0;
+    });
 
     await req.user.save();
-    res.json({ msg: `Now watching machine '${req.machine.machineId}'` });
+    res.json({
+      machineId: currMachineId,
+      watchedMachines: req.user.watchedMachines,
+    });
   } catch (err) {
     next(err);
   }
@@ -79,21 +97,22 @@ exports.removeMachine = async (req, res, next) => {
   const { all } = req.body;
 
   try {
+    const currMachineId = req.machine.machineId;
     if (all) {
       req.user.watchedMachines = undefined;
       await req.user.save();
       res.json({ msg: 'Stopped watching all machines' });
     } else {
-      const index = req.user.watchedMachines.indexOf(req.machine.machineId);
+      const index = req.user.watchedMachines.findIndex((element) => { return element.machineId === currMachineId; });
       if (index === -1) {
-        return res.status(400).json({ msg: `Was not watching machine '${req.machine.machineId}'` });
+        return res.status(400).json({ msg: `Was not watching machine '${currMachineId}'` });
       }
       req.user.watchedMachines.splice(index, 1);
       if (req.user.watchedMachines.length === 0) {
         req.user.watchedMachines = undefined;
       }
       await req.user.save();
-      res.json({ msg: `Stopped watching machine '${req.machine.machineId}'` });
+      res.json({ msg: `Stopped watching machine '${currMachineId}'` });
     }
   } catch (err) {
     next(err);

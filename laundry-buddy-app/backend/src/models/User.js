@@ -16,7 +16,9 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  watchedMachines: [String],
+  watchedMachines: {
+    type: [], 
+  },
   resetPasswordToken: String, 
   resetPasswordExpires: String, 
 }, { versionKey: false });

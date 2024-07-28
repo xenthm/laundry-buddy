@@ -38,74 +38,25 @@ const TypeModal = ({ visible, onClose }) => {
     setSelectedFloor(option);
   };
 
-  const makeNewEntry = async (machine) => {
-    const endTime = new Date(machine.endTime);
-    let status;
-    if (machine.state === 'on') {
-      if (endTime.getTime() > Date.now()) {
-        status = 'In use';
-      } else {
-        status = 'Complete';
-      }
-    } else {
-      status = 'Not in use';
-    }
-
-    const newMachineId = machine.machineId;
-    const newAlphaId = newMachineId.slice(-1); // in the machine naming convention, the last character is the unique identifier for its floor
-    console.log(`machine alpha id is: ${newAlphaId}`);
-    setResponseAlphaId(newAlphaId);
-
-    return {
-      id: newMachineId,
-      alpha_id: newAlphaId,
-      floor: machine.floor,
-      type: selectedType,
-      status: status,
-      duration: machine.duration,
-      endTime: endTime,
-    };
-  };
-
   const addEntry = async () => {
+    onClose();
     try {
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/machine/earliest`,
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-earliest-machine`,
         {
           'earliestMachineType': selectedType,
           'earliestMachineFloor': selectedFloor,
-        }
+        },
       );
-      const machine = response.data;
 
-      if (entries.find((item) => { return item.id === machine.machineId })) {
+      if (entries.some((entry: any) => { return entry.id === response.data.machineId })) {
         Alert.alert(
           "Failed to watch earliest machine",
-          `Already watching machine ${machine.machineId}`
+          `Already watching machine ${response.data.machineId}`
         );
-        onClose();
         return;
-      } else {
-        setEntries([
-          ...entries,
-          await makeNewEntry(machine),
-        ]);
       }
-
-      console.log("Floor: " + selectedFloor + " Type: " + selectedType);
-      console.log("Entries now..." + entries.length);
-
-      // the 2 requests in this file can be combined into one
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
-        {},
-        {
-          headers: {
-            'machineId': machine.machineId,
-          }
-        }
-      );
-      onClose();
+      setEntries(response.data.watchedMachines);
     } catch (error) {
       if (error.response && (error.response.status === 400 || error.response.status === 404)) {
         Alert.alert("Failed to watch earliest machine", `${error.response.data.msg}`);

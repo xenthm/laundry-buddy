@@ -4,7 +4,7 @@ exports.findMachine = async (req, res, next) => {
   const machineId = req.header('machineId');
 
   try {
-    req.machine = await Machine.findOne({ machineId });
+    req.machine = await Machine.findOne({ machineId }).select('-_id');
 
     if (!req.machine) {
       return res.status(404).json({ msg: `Machine '${machineId}' not found` });
@@ -22,62 +22,33 @@ exports.findEarliestMachine = async (req, res, next) => {
   if (!['washer', 'dryer'].includes(earliestMachineType)) {
     return res.status(400).json({ msg: "Invalid earliestMachineType, must be 'washer' or 'dryer'" });
   }
-  
+
   if ((typeof earliestMachineFloor != 'number' || earliestMachineFloor === 0) && earliestMachineFloor != 'all') {
     // -1 corresponds to B1, -2 to B2, etc.
     return res.status(400).json({ msg: "Invalid earliestMachineFloor, must be 'all' or a non-zero number" });
   }
-  
-  try {
-    // exclude the test machine in all searches
-    if (earliestMachineFloor === 'all') {
-      // try finding an machine that has state 'off' first
-      req.machine = await Machine.findOne({ state: 'off', machineType: earliestMachineType, machineId: {$ne: 'test'} });
-      // find the earliest available machine if all are in use
-      if (!req.machine) {
-        req.machine = await Machine.findOne({ machineType: earliestMachineType, machineId: {$ne: 'test'} }).sort({ endTime: 1 });
-      }
-  
-      if (!req.machine) {
-        return res.status(404).json({ msg: `Earliest ${earliestMachineType} not found` });
-      }
-    } else {
-      // try finding an machine that has state 'off' first
-      req.machine = await Machine.findOne({ state: 'off', machineType: earliestMachineType, floor: earliestMachineFloor, machineId: {$ne: 'test'} });
-      // find the earliest available machine if all are in use
-      if (!req.machine) {
-        req.machine = await Machine.findOne({ machineType: earliestMachineType, floor: earliestMachineFloor, machineId: {$ne: 'test'} }).sort({ endTime: 1 });
-      }
-  
-      if (!req.machine) {
-        return res.status(404).json({ msg: `Earliest ${earliestMachineType} from floor '${earliestMachineFloor}' not found` });
-      }
-    }
-    
 
-    next();
+  try {
+    let query = Machine.findOne({ machineType: earliestMachineType, state: 'off', machineId: { $ne: 'test' } }).select('-_id')
+
+    if (earliestMachineFloor != 'all') {
+      // Create base query for machines of the given type, floor, and not equal to 'test'
+      query = query.where({ floor: earliestMachineFloor });
+    }
+
+    // Try finding a machine that is off first
+    req.machine = await query.exec();
+
+    // If no 'off' machine is found, modify the query to remove the state condition
+    if (!req.machine) {
+      query = query.clone().where({ state: { $exists: true } }).sort({ endTime: 1 });
+      req.machine = await query.exec();
+    }
+
+    if (!req.machine) {
+      return res.status(404).json({ msg: `Earliest ${earliestMachineType}${earliestMachineFloor === 'all' ? '' : ` from floor '${earliestMachineFloor}'`} not found` });
+    } next();
   } catch (err) {
     next(err);
   }
 };
-
-exports.getMachineDetails = async (req, res, next) => {
-  try {
-    if (req.user.watchedMachines) {
-      for (const machineId of req.user.watchedMachines) {
-        req.machineDetails = [];
-        const machine = await Machine.findOne({ machineId });
-        if (machine) {
-          req.machineDetails.push({ // sorting can happen here
-            machineId: machine.machineId,
-            state: machine.state,
-            endTime: machine.endTime,
-          });
-        }
-      }
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
-}

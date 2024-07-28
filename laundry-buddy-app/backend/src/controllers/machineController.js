@@ -32,7 +32,7 @@ exports.setMachineState = async (req, res, next) => {
 
   let endTime;
   if (state === "on") {
-    endTime = new Date(new Date().getTime() + duration);
+    endTime = new Date(Date.now() + duration);
   } else if (state === "off") {
     endTime = undefined;
   } else {
@@ -78,9 +78,9 @@ exports.countMachines = async (req, res, next) => {
   }
 
   try {
-    const availableMachines = await Machine.countDocuments({ machineType, floor, state: "off" });
-    const totalMachines = await Machine.countDocuments({ machineType, floor });
-    res.json({ availableMachines, totalMachines });
+    const available = await Machine.countDocuments({ machineType, floor, state: "off" });
+    const total = await Machine.countDocuments({ machineType, floor });
+    res.json({ available, total });
   } catch (err) {
     next(err);
   }
