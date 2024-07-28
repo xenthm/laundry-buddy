@@ -93,6 +93,7 @@ export default function Login() {
         );
         console.error(error);
       }
+      setIsLoggingIn(false);
     }
   };
 
