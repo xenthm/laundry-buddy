@@ -1,5 +1,5 @@
 import { EntriesContext } from "@/contexts/EntriesContext";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState } from "react";
 import {
   Alert,
   Modal,
@@ -16,12 +16,10 @@ import axios from "axios";
 // These requirements are either by floor (or any floor) or by machine type
 
 const TypeModal = ({ visible, onClose }) => {
-  //const { isTypeModalOpen, setTypeModalOpen } = useContext(TypeStateContext);
   const { entries, setEntries } = useContext<any>(EntriesContext);
   const [selectedType, setSelectedType] = useState("");
   const [selectedFloor, setSelectedFloor] = useState<any>(0);
   const [responseAlphaId, setResponseAlphaId] = useState("");
-
 
   const handleTypeSelect = (option) => {
     if (option === 'W') {
@@ -39,6 +37,9 @@ const TypeModal = ({ visible, onClose }) => {
   };
 
   const addEntry = async () => {
+    if (!selectedType || !selectedFloor) {
+      return;
+    }
     onClose();
     try {
       const response = await axios.post(

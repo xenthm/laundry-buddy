@@ -16,9 +16,6 @@ import { TextInput } from "react-native-paper";
 
 const logo = require("@/assets/images/icon_laundrybuddy.png");
 const bg = require("@/assets/images/water.png");
-// const facebook = require("../../assets/facebook.png")
-// const linkedin = require("../../assets/linkedin.png")
-// const tiktok = require("../../assets/tiktok.png")
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -64,10 +61,9 @@ export default function SignUp() {
 
       await SecureStore.setItemAsync("token", token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${SecureStore.getItem("token")}`;
-      // for now, show the token when sign up successful
       console.log(
         "Sign Up Successful",
-        `Token saved successfully!\n${token}`
+        `Token saved successfully!`
       );
       setEmail('');
       setUsername('');

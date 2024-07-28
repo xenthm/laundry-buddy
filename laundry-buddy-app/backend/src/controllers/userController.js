@@ -92,6 +92,33 @@ exports.watchMachine = async (req, res, next) => {
   }
 };
 
+exports.refreshWatched = async (req, res, next) => {
+  try {
+    if (req.user.watchedMachines.length != 0) {
+      for (let i = 0; i < req.user.watchedMachines.length; i++) {
+        let machine = await Machine.findOne({ machineId: req.user.watchedMachines[i].machineId }).select('-_id');
+        req.user.watchedMachines[i] = machine;
+      }
+
+      // sorts watchedMachines in ascending endTime, placing machines that are off first
+      req.user.watchedMachines.sort((a, b) => {
+        // 
+        if (a.state === 'off' || a.endTime < b.endTime) {
+          return - 1
+        }
+        if (b.state === 'off' || a.endTime > b.endTime) {
+          return 1;
+        }
+        return 0;
+      });
+      await req.user.save();
+    }
+    res.json();
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Remove watched machine
 exports.removeMachine = async (req, res, next) => {
   const { all } = req.body;
