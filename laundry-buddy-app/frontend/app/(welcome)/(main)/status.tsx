@@ -47,12 +47,19 @@ async function sendPushNotification(expoPushToken: string, machineId: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(message),
-  });
-  console.log("Notification sent!");
+  })
+    .then((response) => {
+      // if (!response.ok) {
+      //   Alert.alert(`HTTP error! Status: ${response.status}`, response.statusText);
+      // }
+      return response.json();
+    });
+  console.log(`Notification for ${machineId} sent!`);
 }
 
 function handleRegistrationError(errorMessage: string) {
-  alert(errorMessage);
+  Alert.alert(errorMessage);
+  console.error(errorMessage);
   throw new Error(errorMessage);
 }
 
@@ -102,12 +109,19 @@ async function registerForPushNotificationsAsync() {
   }
 }
 
+let globalToken: string;
+registerForPushNotificationsAsync()
+  .then((token) => {
+    globalToken = token ?? "";
+  })
+  .catch((error: any) => console.error(error));
+
 export default function Status() {
   const [entries, setEntries] = useState<any>([]);
   const [isFABOpen, setIsFABOpen] = useState(false);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [isIdModalOpen, setIsIdModalOpen] = useState(false);
-  const [expoPushToken, setExpoPushToken] = useState("");
+  const [expoPushToken, setExpoPushToken] = useState(globalToken);
   const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
@@ -221,12 +235,8 @@ export default function Status() {
     console.log("Successfully restored machine count");
   };
 
-  // notification stuff
   useEffect(() => {
-    registerForPushNotificationsAsync()
-      .then((token) => setExpoPushToken(token ?? ""))
-      .catch((error: any) => setExpoPushToken(`${error}`));
-
+    // Notifications
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         setNotification(notification);
@@ -237,20 +247,16 @@ export default function Status() {
         console.log(response);
       });
 
+    // Get watched machines initially
+    fetchWatchedMachines();
+    updateDashboard();
+
     return () => {
       notificationListener.current &&
-        Notifications.removeNotificationSubscription(
-          notificationListener.current
-        );
+        Notifications.removeNotificationSubscription(notificationListener.current);
       responseListener.current &&
         Notifications.removeNotificationSubscription(responseListener.current);
     };
-  }, []);
-
-  // Get watched machines initially
-  useEffect(() => {
-    fetchWatchedMachines();
-    updateDashboard();
   }, []);
 
   // Timer for now watching
@@ -332,26 +338,22 @@ export default function Status() {
           if (item.state === "on") {
             if (remainingTime <= 999) {
               status = "Done";
-              console.log(status);
-              console.log(item.notifSent);
               if (item.notifSent === false) {
                 sendPushNotification(expoPushToken, item.machineId);
                 item.notifSent = true;
-                console.log(item.notifSent);
               }
             } else if (remainingTime > 0) {
               const minutes = Math.floor(remainingTime / 1000 / 60);
               const seconds = Math.floor((remainingTime / 1000) % 60);
-              status = `${minutes < 10 ? "0" : ""}${minutes}:${
-                seconds < 10 ? "0" : ""
-              }${seconds}`;
+              status = `${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""
+                }${seconds}`;
             }
           } else {
             status = "Available";
           }
 
           const alphaId = item.machineId.slice(-1);
-          return { ...item, status, alphaId};
+          return { ...item, status, alphaId };
         })
       );
     } catch (err) {
@@ -498,8 +500,8 @@ export default function Status() {
                           {item.machineType == "washer"
                             ? "Washer"
                             : item.machineType == "dryer"
-                            ? "Dryer"
-                            : ""}{" "}
+                              ? "Dryer"
+                              : ""}{" "}
                           {item.machineId === "test" ? "" : item.alphaId}
                         </Text>
                         <Text style={styles.entry}>{item.status}</Text>
