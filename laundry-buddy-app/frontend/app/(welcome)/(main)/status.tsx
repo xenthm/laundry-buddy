@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import LevelMachines from "@/components/LevelMachines";
-import { router } from 'expo-router';
+import { router } from "expo-router";
 import axios from "axios";
 import {
   Alert,
@@ -10,14 +10,112 @@ import {
   View,
   ImageBackground,
   FlatList,
+  Platform,
   RefreshControl,
 } from "react-native";
 import { IconButton, FAB, Portal, PaperProvider } from "react-native-paper";
 import TypeModal from "@/components/TypeModal";
 import { EntriesContext } from "@/contexts/EntriesContext";
 import IDModal from "@/components/IDModal";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import { executeOnUIRuntimeSync } from "react-native-reanimated";
 
 const bg = require("@/assets/images/water.png");
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+async function sendPushNotification(expoPushToken: string, machineId: string) {
+  const message = {
+    to: expoPushToken,
+    sound: "default",
+    title: "Machine " + machineId + " cycle complete!",
+    body: "Laundry should be cleared soon.",
+  };
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(message),
+  })
+    .then((response) => {
+      // if (!response.ok) {
+      //   Alert.alert(`HTTP error! Status: ${response.status}`, response.statusText);
+      // }
+      return response.json();
+    });
+  console.log(`Notification for ${machineId} sent!`);
+}
+
+function handleRegistrationError(errorMessage: string) {
+  Alert.alert(errorMessage);
+  console.error(errorMessage);
+  throw new Error(errorMessage);
+}
+
+async function registerForPushNotificationsAsync() {
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  if (Device.isDevice) {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      handleRegistrationError(
+        "Permission not granted to get push token for push notification!"
+      );
+      return;
+    }
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ??
+      Constants?.easConfig?.projectId;
+    if (!projectId) {
+      handleRegistrationError("Project ID not found");
+    }
+    try {
+      const pushTokenString = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId,
+        })
+      ).data;
+      console.log(pushTokenString);
+      return pushTokenString;
+    } catch (e: unknown) {
+      handleRegistrationError(`${e}`);
+    }
+  } else {
+    handleRegistrationError("Must use physical device for push notifications");
+  }
+}
+
+let globalToken: string;
+registerForPushNotificationsAsync()
+  .then((token) => {
+    globalToken = token ?? "";
+  })
+  .catch((error: any) => console.error(error));
 
 export default function Status() {
   const [entries, setEntries] = useState<any>([]);
@@ -27,6 +125,10 @@ export default function Status() {
   const countdownIntervalRef = useRef<number | null>(null);
   const dashboardIntervalRef = useRef<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState(globalToken);
+  const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
+  const notificationListener = useRef<Notifications.Subscription>();
+  const responseListener = useRef<Notifications.Subscription>();
   const [machineCount, setMachineCount] = useState({
     test: {
       washer: {
@@ -36,7 +138,7 @@ export default function Status() {
       dryer: {
         available: 0,
         total: 0,
-      }
+      },
     },
     9: {
       washer: {
@@ -46,7 +148,7 @@ export default function Status() {
       dryer: {
         available: 4,
         total: 4,
-      }
+      },
     },
     17: {
       washer: {
@@ -56,8 +158,8 @@ export default function Status() {
       dryer: {
         available: 4,
         total: 4,
-      }
-    }
+      },
+    },
   });
 
   const fetchWatchedMachines = async () => {
@@ -70,8 +172,15 @@ export default function Status() {
       }
       console.log(`Successfully restored ${response.data.watchedMachines ? response.data.watchedMachines.length : '0'} watched machines`);
     } catch (error) {
-      if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
-        Alert.alert("Failed to fetch watched machines", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        Alert.alert(
+          "Failed to fetch watched machines",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to fetch watched machines",
@@ -80,7 +189,7 @@ export default function Status() {
         console.error(error);
       }
     }
-  }
+  };
 
   const fetchMachineCount = useCallback(async (floor: number, machineType: string) => {
     try {
@@ -90,8 +199,15 @@ export default function Status() {
       );
       return response.data;
     } catch (error) {
-      if (error.response && (error.response.status >= 400 && error.response.status < 500)) {
-        Alert.alert("Failed to fetch machine count", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        Alert.alert(
+          "Failed to fetch machine count",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to fetch machine count",
@@ -104,14 +220,14 @@ export default function Status() {
 
   const updateDashboard = useCallback(async () => {
     for (const floor in machineCount) {
-      if (floor === 'test') {
+      if (floor === "test") {
         continue;
       }
 
       const floorNum = Number(floor);
-      for (const type of ['washer', 'dryer']) {
+      for (const type of ["washer", "dryer"]) {
         const { available, total } = await fetchMachineCount(floorNum, type);
-        setMachineCount(prevState => ({
+        setMachineCount((prevState) => ({
           ...prevState,
           [floorNum]: {
             ...prevState[floorNum],
@@ -134,12 +250,30 @@ export default function Status() {
     console.log('Successfully restored machine count');
   }, [])
 
-  // get previous info on mount
   useEffect(() => {
+    // Notifications
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
+
+    // Get watched machines initially
     updateDashboard();
     fetchWatchedMachines();
     updateEntries();
-  }, [])
+
+    return () => {
+      notificationListener.current &&
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      responseListener.current &&
+        Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
 
   // Timer for now watching
   useEffect(() => {
@@ -194,23 +328,30 @@ export default function Status() {
   // remove this once test machine is removed
   const addEntry = async () => {
     try {
-      if (entries.some((entry: any) => { return entry.id === 'test' })) {
-        Alert.alert(
-          "Failed to watch machine",
-          `Already watching machine test`
-        );
+      if (
+        entries.some((entry: any) => {
+          return entry.id === "test";
+        })
+      ) {
+        Alert.alert("Failed to watch machine", `Already watching machine test`);
         return;
       }
 
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`, {}, {
-        headers: {
-          'machineId': 'test',
+        `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
+        {},
+        {
+          headers: {
+            machineId: "test",
+          },
         }
-      });
+      );
       setEntries(response.data.watchedMachines);
     } catch (error) {
-      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+      if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 404)
+      ) {
         Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
       } else {
         Alert.alert(
@@ -231,11 +372,16 @@ export default function Status() {
           if (item.state === 'on') {
             const remainingTime = new Date(item.endTime).getTime() - Date.now();
             if (remainingTime <= 999) {
-              status = 'Done';
+              status = "Done";
+              if (item.notifSent === false) {
+                sendPushNotification(expoPushToken, item.machineId);
+                item.notifSent = true;
+              }
             } else if (remainingTime > 0) {
-              const minutes = Math.floor((remainingTime / 1000) / 60);
+              const minutes = Math.floor(remainingTime / 1000 / 60);
               const seconds = Math.floor((remainingTime / 1000) % 60);
-              status = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+              status = `${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""
+                }${seconds}`;
             }
           }
 
@@ -260,16 +406,22 @@ export default function Status() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/user/watch-machine`,
         {
           data: {
-            'all': false,
+            all: false,
           },
           headers: {
-            'machineId': machineID,
+            machineId: machineID,
           },
         }
       );
     } catch (error) {
-      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
-        Alert.alert("Failed to set machine state", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 404)
+      ) {
+        Alert.alert(
+          "Failed to set machine state",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to set machine state",
@@ -285,11 +437,18 @@ export default function Status() {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/auth/logout`
       );
-      Alert.alert('Log out', response.data.msg);
+      Alert.alert("Log out", response.data.msg);
       router.back();
     } catch (error) {
-      if (error.response && error.response.status >= 400 && error.response.status < 500) {
-        Alert.alert("Failed to set machine state", `${error.response.data.msg}`);
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        Alert.alert(
+          "Failed to set machine state",
+          `${error.response.data.msg}`
+        );
       } else {
         Alert.alert(
           "Failed to set machine state",
@@ -351,7 +510,13 @@ export default function Status() {
               </View>
               <View style={styles.watchingView}>
                 <FlatList
-                  ListEmptyComponent={<Text style={styles.watchText}>{"You are not watching any machines now.\nSelect the '+' button to watch a machine."}</Text>}
+                  ListEmptyComponent={
+                    <Text style={styles.watchText}>
+                      {
+                        "You are not watching any machines now.\nSelect the '+' button to watch a machine."
+                      }
+                    </Text>
+                  }
                   contentContainerStyle={styles.list}
                   data={entries}
                   keyExtractor={(item) => item.machineId}
@@ -382,7 +547,7 @@ export default function Status() {
                 style={styles.fab}
                 visible={true}
                 open={isFABOpen}
-                icon={isFABOpen ? 'window-close' : 'plus'}
+                icon={isFABOpen ? "window-close" : "plus"}
                 fabStyle={styles.fabButton}
                 color="black"
                 backdropColor="#ffffff00"
@@ -409,7 +574,9 @@ export default function Status() {
                     onPress: () => addEntry(),
                   },
                 ]}
-                onStateChange={() => { setIsFABOpen(!isFABOpen) }}
+                onStateChange={() => {
+                  setIsFABOpen(!isFABOpen);
+                }}
               />
             </Portal>
           </PaperProvider>
@@ -423,7 +590,7 @@ export default function Status() {
           ></IDModal>
         </ImageBackground>
       </SafeAreaView>
-    </EntriesContext.Provider >
+    </EntriesContext.Provider>
   );
 }
 

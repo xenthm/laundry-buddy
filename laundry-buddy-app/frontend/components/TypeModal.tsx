@@ -36,6 +36,37 @@ const TypeModal = ({ visible, onClose }) => {
     setSelectedFloor(option);
   };
 
+  const makeNewEntry = async (machine) => {
+    const endTime = new Date(machine.endTime);
+    const remainingTime = new Date(endTime.getTime() - Date.now()).getTime();
+    let status;
+    if (machine.state === 'on') {
+      if (endTime.getTime() > Date.now()) {
+        status = 'In use';
+      } else {
+        status = 'Complete';
+      }
+    } else {
+      status = 'Not in use';
+    }
+
+    const newMachineId = machine.machineId;
+    const newAlphaId = newMachineId.slice(-1); // in the machine naming convention, the last character is the unique identifier for its floor
+    console.log(`machine alpha id is: ${newAlphaId}`);
+    setResponseAlphaId(newAlphaId);
+
+    return {
+      id: newMachineId,
+      alpha_id: newAlphaId,
+      floor: machine.floor,
+      type: selectedType,
+      status: status,
+      duration: machine.duration,
+      endTime: endTime,
+      notifSent: false,
+    };
+  };
+
   const addEntry = async () => {
     if (!selectedType || !selectedFloor) {
       return;

@@ -15,12 +15,17 @@ import axios from "axios";
 
 // This modal allows users to watch a specific machine in the laundry room
 
-const IDModal = ({ visible, onClose }) => {
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const IDModal = ({ visible, onClose, sendPushNotification }) => {
   const { entries, setEntries } = useContext<any>(EntriesContext);
   const [machineID, setMachineId] = useState("test");
   const [selectedType, setSelectedType] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("test");
   const [selectedAlphaId, setSelectedAlphaId] = useState("");
+  const [notifSent, setNotifSent] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
 
   const handleTypeSelect = (option) => {
@@ -45,18 +50,25 @@ const IDModal = ({ visible, onClose }) => {
   const addEntry = async () => {
     onClose();
     let newMachineId;
-    if (selectedType === '' || selectedFloor === 'test' || selectedAlphaId === '') {
+    if (
+      selectedType === "" ||
+      selectedFloor === "test" ||
+      selectedAlphaId === ""
+    ) {
       newMachineId = "test";
       setSelectedType('');
       setSelectedFloor('test');
       setSelectedAlphaId('');
     } else {
-      newMachineId = (selectedFloor.length === 1 ? ('0' + selectedFloor) : selectedFloor) + selectedType + selectedAlphaId;
+      newMachineId =
+        (selectedFloor.length === 1 ? "0" + selectedFloor : selectedFloor) +
+        selectedType +
+        selectedAlphaId;
     }
     setMachineId(newMachineId); // not used for anything as of now
 
     try {
-      if (entries.some((entry: any) => { return entry.id === newMachineId })) {
+      if (entries.some((entry: any) => { return entry.id === newMachineId})) {
         Alert.alert(
           "Failed to watch machine",
           `Already watching machine ${newMachineId}`
@@ -72,7 +84,10 @@ const IDModal = ({ visible, onClose }) => {
       });
       setEntries(response.data.watchedMachines);
     } catch (error) {
-      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+      if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 404)
+      ) {
         Alert.alert("Failed to watch machine", `${error.response.data.msg}`);
       } else {
         Alert.alert(
