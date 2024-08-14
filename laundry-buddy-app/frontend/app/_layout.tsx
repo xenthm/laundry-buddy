@@ -1,4 +1,3 @@
-import { EntriesProvider } from "@/contexts/EntriesContext";
 import { Drawer } from "expo-router/drawer";
 
 export default function RootLayout() {

@@ -1,5 +1,5 @@
 import { EntriesContext } from "@/contexts/EntriesContext";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState } from "react";
 import {
   Alert,
   Modal,
@@ -15,17 +15,11 @@ import axios from "axios";
 // This modal searches for the fastest completed machine with the chosen requirements
 // These requirements are either by floor (or any floor) or by machine type
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-const TypeModal = ({ visible, onClose, sendPushNotification }) => {
-  //const { isTypeModalOpen, setTypeModalOpen } = useContext(TypeStateContext);
+const TypeModal = ({ visible, onClose }) => {
   const { entries, setEntries } = useContext<any>(EntriesContext);
   const [selectedType, setSelectedType] = useState("");
   const [selectedFloor, setSelectedFloor] = useState<any>(0);
   const [responseAlphaId, setResponseAlphaId] = useState("");
-
 
   const handleTypeSelect = (option) => {
     if (option === 'W') {
@@ -74,6 +68,9 @@ const TypeModal = ({ visible, onClose, sendPushNotification }) => {
   };
 
   const addEntry = async () => {
+    if (!selectedType || !selectedFloor) {
+      return;
+    }
     onClose();
     try {
       const response = await axios.post(
