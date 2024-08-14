@@ -89,7 +89,7 @@ async function registerForPushNotificationsAsync() {
     try {
       const pushTokenString = (
         await Notifications.getExpoPushTokenAsync({
-          projectId: Constants.expoConfig.extra.eas.projectId,
+          projectId,
         })
       ).data;
       console.log(pushTokenString);
@@ -108,9 +108,7 @@ export default function Status() {
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [isIdModalOpen, setIsIdModalOpen] = useState(false);
   const [expoPushToken, setExpoPushToken] = useState("");
-  const [notification, setNotification] = useState<
-    Notifications.Notification | undefined
-  >(undefined);
+  const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
   const [machineCount, setMachineCount] = useState({
@@ -223,6 +221,7 @@ export default function Status() {
     console.log("Successfully restored machine count");
   };
 
+  // notification stuff
   useEffect(() => {
     registerForPushNotificationsAsync()
       .then((token) => setExpoPushToken(token ?? ""))

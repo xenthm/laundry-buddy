@@ -20,3 +20,7 @@ expo-env.d.ts
 # @end expo-cli
 
 .env
+
+# Android credential stuff
+google-services.json
+laundry-buddy-6133-firebase-adminsdk-rtd22-5ca2b5abff.json
