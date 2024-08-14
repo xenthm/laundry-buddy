@@ -20,8 +20,7 @@
         "foregroundImage": "./assets/images/icon_laundrybuddy.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.laundrybuddy.laundrybuddy", 
-      "googleServicesFile": "./google-services.json"
+      "package": "com.laundrybuddy.laundrybuddy"
     },
     "web": {
       "bundler": "metro",

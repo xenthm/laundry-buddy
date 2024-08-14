@@ -369,6 +369,9 @@ export default function Status() {
       setEntries((prevEntries: any) =>
         prevEntries.map((item: any) => {
           let status = 'Available';
+          if (item.notifSent === undefined) {
+            item.notifSent = false;
+          }
           if (item.state === 'on') {
             const remainingTime = new Date(item.endTime).getTime() - Date.now();
             if (remainingTime <= 999) {
